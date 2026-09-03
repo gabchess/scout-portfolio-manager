@@ -18,4 +18,6 @@ class FixturePortfolioReader:
         self.fixture_path = Path(fixture_path)
 
     def snapshot(self) -> PortfolioSnapshot:
-        return PortfolioSnapshot.model_validate(json.loads(self.fixture_path.read_text()))
+        parsed = PortfolioSnapshot.model_validate(json.loads(self.fixture_path.read_text()))
+        parsed.source.locator = str(self.fixture_path)
+        return parsed

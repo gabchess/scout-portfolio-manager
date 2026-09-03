@@ -7,7 +7,7 @@ from .contracts import Holding, Transaction
 
 
 class PnlResult(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     asset: str
     realized_usd: float = 0

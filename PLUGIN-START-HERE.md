@@ -10,7 +10,7 @@ python3.11 -m venv .venv
 .venv/bin/pytest -q
 ```
 
-The package install provides the `zpm-mcp` command used by `.mcp.json`.
+The package install provides the `zpm-mcp` command. `.mcp.json` launches it with `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp` rather than a bare `zpm-mcp`, so it starts with no PATH setup beyond `uv` itself.
 
 ## Load the plugin locally
 

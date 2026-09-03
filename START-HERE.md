@@ -53,6 +53,8 @@ See [`PLUGIN-START-HERE.md`](PLUGIN-START-HERE.md) for plugin details.
 
 The server exposes only `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to point to another local fixture.
 
+Claude Code itself launches the server via `.mcp.json`, which runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp` instead of a bare `zpm-mcp` command. This works with no PATH setup, and `uv` (not a project-local `.venv/bin`) must be on the launching shell's PATH.
+
 ## Boundaries
 
 DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is approval-required and does not execute.
