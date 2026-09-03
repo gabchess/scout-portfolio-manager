@@ -229,6 +229,26 @@
       ],
       "status": "completed",
       "verifier": "python -m pytest -q"
+    },
+    {
+      "attempts": 1,
+      "blocker": null,
+      "depends_on": [
+        "ZPM-009"
+      ],
+      "evidence": [
+        "command:.venv/bin/pytest tests/test_host.py -q => 10 passed; command:.venv/bin/pytest -q => 39 passed; command:.venv/bin/python scripts/security_scan.py => no credential-shaped secrets found; command:.venv/bin/python -m compileall -q src tests scripts => clean"
+      ],
+      "id": "ZPM-010",
+      "max_attempts": 3,
+      "outcome": "Read-only host adapter and optional MCP wrapper pass focused and full verification",
+      "owns": [
+        "src/zerion_portfolio_manager/host.py",
+        "src/zerion_portfolio_manager/mcp_server.py",
+        "tests/test_host.py"
+      ],
+      "status": "completed",
+      "verifier": ".venv/bin/pytest tests/test_host.py -q"
     }
   ],
   "non_goals": [
@@ -238,6 +258,6 @@
   "objective": "Build and verify the approved fixture-backed Zerion Agentic Portfolio Manager MVP with explicit observe/calculate/propose/approve/execute/verify boundaries",
   "phase": "gate",
   "repo": "/Users/gava/Projects/zerion-portfolio-manager",
-  "revision": 30,
+  "revision": 33,
   "schema_version": 2
 }

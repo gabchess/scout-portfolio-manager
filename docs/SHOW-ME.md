@@ -2,18 +2,19 @@
 
 ```text
 Fixture JSON
-  -> FixturePortfolioReader.observe()
+  -> ReadOnlyHost.get_portfolio_snapshot()
   -> PortfolioSnapshot
-  -> read_intent("What is my PnL?")
+  -> ReadOnlyHost.get_pnl()
   -> PnlResult
 
 DCA text
-  -> parse_dca_request()
+  -> ReadOnlyHost.parse_dca_request()
   -> partial DcaIntent
   -> clarification, never inference
-  -> build_preview()
+  -> ReadOnlyHost.preview_dca()
   -> approval_state = required
-  -> FakeExecutionAdapter.execute()
+  -> (host stops here; no execute tool)
+  -> FakeExecutionAdapter.execute()   # separate, non-host path only
   -> SettlementVerifier.verify(readback)
 ```
 

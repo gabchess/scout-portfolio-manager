@@ -100,10 +100,18 @@ No real API calls, wallet connections, signatures, funds, credentials, seeds, pr
 - **Dependencies:** ZPM-004, ZPM-008.
 - **Verifier:** independent review pass plus command evidence.
 
+### ZPM-010 Read-only host adapter
+
+- **Outcome:** agent-facing host exposes `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca` only; optional MCP stdio entry wraps the same surface; execute remains unavailable on the host.
+- **Owned surface:** `host.py`, `mcp_server.py`, host tests, docs.
+- **Protected boundaries:** no wallet, network, signing, funds, credentials, or real rail; missing DCA fields still force clarification; preview keeps `approval_state=required` and `execution_available=false`.
+- **Dependencies:** ZPM-009.
+- **Verifier:** focused host tests plus full suite and security scan.
+
 ## Execution order
 
-`ZPM-001 -> ZPM-002 -> ZPM-003 -> ZPM-004` and `ZPM-001 -> ZPM-005 -> ZPM-006 -> ZPM-007 -> ZPM-008`, then `ZPM-009`.
+`ZPM-001 -> ZPM-002 -> ZPM-003 -> ZPM-004` and `ZPM-001 -> ZPM-005 -> ZPM-006 -> ZPM-007 -> ZPM-008`, then `ZPM-009`, then `ZPM-010`.
 
 ## Re-entry condition
 
-Begin implementation at ZPM-001 after the plan and loop state are recorded. If package/tooling assumptions conflict with the source notes, stop and revise the plan rather than creating a second repository or widening into real integrations.
+Local MVP (ZPM-001..009) and read-only host (ZPM-010) are the current boundary. Next reversible work is optional packaging polish or a separately authorized real observe adapter. Real execution rail, push, deploy, and outreach remain blocked without a new authority decision. If package/tooling assumptions conflict with the source notes, stop and revise the plan rather than widening into real integrations.
