@@ -6,6 +6,8 @@ Execution stays behind FakeExecutionAdapter and requires a separate authority pa
 
 from __future__ import annotations
 
+import logging
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from importlib.resources import files
 from pathlib import Path
@@ -19,9 +21,24 @@ from .safety import build_preview
 from .zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIError,
+    ZerionAPINotFoundError,
+    ZerionAPIPaginationError,
     ZerionAPIRateLimitError,
+    ZerionAPIServerError,
     ZerionAPITransportError,
 )
+
+logger = logging.getLogger(__name__)
+
+# In-process counter of observe-boundary error kinds, keyed by the same
+# "error.kind" string surfaced in _observe_error's response. Readable by a
+# caller for basic aggregation; reset only by process restart.
+_error_kind_counts: "Counter[str]" = Counter()
+
+
+def error_kind_counts() -> Dict[str, int]:
+    """Snapshot of in-process observe-error counts, keyed by error.kind."""
+    return dict(_error_kind_counts)
 
 TOOL_NAMES = (
     "get_portfolio_snapshot",
@@ -268,13 +285,19 @@ class ReadOnlyHost:
         assert intent.amount_usd is not None  # ready status guarantees this
 
         if expected_output is None:
-            expected_output = (
-                round(intent.amount_usd / DEFAULT_ETH_USD, 8) if intent.asset == "ETH" else 0.0
-            )
-            assumed.append(
-                f"expected_output derived from fixture {intent.asset} price "
-                f"${DEFAULT_ETH_USD if intent.asset == 'ETH' else 'unknown'}"
-            )
+            if intent.asset == "ETH":
+                expected_output = round(intent.amount_usd / DEFAULT_ETH_USD, 8)
+                assumed.append(
+                    f"expected_output derived from DEFAULT_ETH_USD (${DEFAULT_ETH_USD}), a "
+                    "fixture-only placeholder price, never a live quote, regardless of the "
+                    "configured portfolio source"
+                )
+            else:
+                expected_output = 0.0
+                assumed.append(
+                    f"expected_output defaulted to 0.0: no fixture or live quote price is "
+                    f"configured for {intent.asset}"
+                )
         if fees_usd is None:
             fees_usd = DEFAULT_FEE_USD
             assumed.append(f"fees_usd assumed {DEFAULT_FEE_USD}")
@@ -323,10 +346,22 @@ def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
         kind = "authorization"
     elif isinstance(exc, ZerionAPIRateLimitError):
         kind = "rate_limit"
+    elif isinstance(exc, ZerionAPINotFoundError):
+        kind = "not_found"
+    elif isinstance(exc, ZerionAPIServerError):
+        kind = "server"
+    elif isinstance(exc, ZerionAPIPaginationError):
+        kind = "pagination"
     elif isinstance(exc, ZerionAPITransportError):
         kind = "transport"
     else:
         kind = "api"
+    _error_kind_counts[kind] += 1
+    logger.warning(
+        "zerion_observe_error boundary=observe source=zerion_api error.kind=%s http_status=%s",
+        kind,
+        exc.status,
+    )
     return {
         "status": "error",
         "boundary": "observe",
