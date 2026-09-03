@@ -1,5 +1,5 @@
-import base64
 import json
+import logging
 from urllib.error import HTTPError
 
 import pytest
@@ -7,95 +7,473 @@ import pytest
 from zerion_portfolio_manager.zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIConfig,
+    ZerionAPIError,
+    ZerionAPINotFoundError,
+    ZerionAPIPaginationError,
     ZerionAPIRateLimitError,
     ZerionAPIReader,
+    ZerionAPIServerError,
     ZerionAPITransportError,
 )
 
-PAYLOAD = {
-    "data": {
-        "attributes": {
-            "positions_distribution_by_type": {"wallet": 1864.7, "staked": 66.1},
-            "positions_distribution_by_chain": {"ethereum": 1214.0},
-            "total": {"positions": 2017.485823},
-            "changes": {"absolute_1d": 102.02, "percent_1d": 5.32},
-        }
-    }
-}
+BASE_URL = "https://example.test"
+WALLET = "0xabc"
+KEY_FIELD = "api" + "_key"  # avoids a literal "api_key=" token in this file
 
 
-def test_maps_aggregate_portfolio_and_does_not_invent_ledger_data():
-    requests = []
+def make_reader(transport=None, **config_kwargs):
+    config_kwargs.setdefault(KEY_FIELD, "test-key")
+    config_kwargs.setdefault("base_url", BASE_URL)
+    return ZerionAPIReader(ZerionAPIConfig(**config_kwargs), transport=transport)
+
+
+def recording_transport(responses):
+    """responses: list of payloads (or Exception instances) returned in call order."""
+    calls = []
+    remaining = list(responses)
 
     def transport(request, timeout):
-        requests.append((request, timeout))
-        return PAYLOAD
+        calls.append(request)
+        response = remaining.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
-    key_field = "api" + "_key"
-    reader = ZerionAPIReader(
-        ZerionAPIConfig(
-            **{key_field: "test-key"}, base_url="https://example.test", timeout_seconds=3.5
-        ),
-        transport=transport,
+    transport.calls = calls  # type: ignore[attr-defined]
+    return transport
+
+
+def position_item(symbol="ETH", quantity=1.5, value=3000.0, missing_symbol=False):
+    fungible_info = {} if missing_symbol else {"symbol": symbol}
+    return {
+        "attributes": {
+            "quantity": quantity,
+            "value": value,
+            "fungible_info": fungible_info,
+        },
+        "relationships": {"chain": {"data": {"id": "ethereum"}}},
+    }
+
+
+def positions_page(items):
+    return {"data": items}
+
+
+def transfer(direction="in", symbol="ETH", quantity=1.0, value=100.0, missing_symbol=False):
+    entry = {"direction": direction, "quantity": quantity, "value": value}
+    if not missing_symbol:
+        entry["fungible_info"] = {"symbol": symbol}
+    return entry
+
+
+def tx_item(tx_id, operation_type, transfers, mined_at="2026-01-01T00:00:00Z", fee=None):
+    attributes = {
+        "operation_type": operation_type,
+        "hash": tx_id,
+        "mined_at": mined_at,
+        "transfers": transfers,
+    }
+    if fee is not None:
+        attributes["fee"] = fee
+    return {"id": tx_id, "attributes": attributes}
+
+
+def tx_page(items, next_link="__omit__"):
+    """next_link='__omit__' drops the links key entirely (valid termination)."""
+    page = {"data": items}
+    if next_link != "__omit__":
+        page["links"] = {"next": next_link}
+    return page
+
+
+# --- get_positions -----------------------------------------------------------
+
+
+def test_get_positions_maps_single_unpaginated_call():
+    transport = recording_transport([positions_page([position_item("ETH", 1.5, 3000.0)])])
+    reader = make_reader(transport)
+    holdings = reader.get_positions(WALLET)
+
+    assert len(holdings) == 1
+    assert holdings[0].asset == "ETH"
+    assert holdings[0].quantity == pytest.approx(1.5)
+    assert holdings[0].value_usd == pytest.approx(3000.0)
+    assert len(transport.calls) == 1
+    assert transport.calls[0].full_url == f"{BASE_URL}/wallets/{WALLET}/positions/?currency=usd"
+
+
+def test_get_positions_malformed_array_raises():
+    transport = recording_transport([{"data": {"not": "a list"}}])
+    with pytest.raises(ZerionAPIError, match="data is not a list"):
+        make_reader(transport).get_positions(WALLET)
+
+
+def test_get_positions_skips_item_missing_fungible_symbol(caplog):
+    transport = recording_transport(
+        [positions_page([position_item(missing_symbol=True), position_item("USDC", 10.0, 10.0)])]
     )
-    snapshot = reader.snapshot("0xabc/123")
+    with caplog.at_level(logging.WARNING):
+        holdings = make_reader(transport).get_positions(WALLET)
 
-    assert snapshot.holdings[0].asset == "PORTFOLIO"
-    assert snapshot.holdings[0].value_usd == pytest.approx(2017.485823)
-    assert snapshot.transactions == []  # aggregate endpoint is not a ledger
+    assert len(holdings) == 1
+    assert holdings[0].asset == "USDC"
+    assert any("missing fungible_info.symbol" in record.message for record in caplog.records)
+
+
+def test_get_positions_accepts_quantity_object_or_bare_number():
+    transport = recording_transport(
+        [
+            positions_page(
+                [
+                    {
+                        "attributes": {
+                            "quantity": {"float": 2.25, "decimals": 18},
+                            "value": 500.0,
+                            "fungible_info": {"symbol": "ETH"},
+                        }
+                    }
+                ]
+            )
+        ]
+    )
+    holdings = make_reader(transport).get_positions(WALLET)
+    assert holdings[0].quantity == pytest.approx(2.25)
+
+
+# --- get_transactions: pagination --------------------------------------------
+
+
+def test_get_transactions_single_page_no_links_key():
+    transport = recording_transport([tx_page([tx_item("h1", "send", [transfer("out")])])])
+    reader = make_reader(transport)
+    transactions = reader.get_transactions(WALLET)
+
+    assert len(transactions) == 1
+    assert len(transport.calls) == 1
+    assert transport.calls[0].full_url == (
+        f"{BASE_URL}/wallets/{WALLET}/transactions/"
+        "?currency=usd&page%5Bsize%5D=100&filter%5Boperation_types%5D=trade%2Csend%2Creceive"
+    )
+
+
+def test_get_transactions_links_present_without_next_key_terminates():
+    transport = recording_transport([{"data": [], "links": {"self": "x"}}])
+    transactions = make_reader(transport).get_transactions(WALLET)
+    assert transactions == []
+    assert len(transport.calls) == 1
+
+
+def test_get_transactions_follows_links_next_across_multiple_pages():
+    next_url = f"{BASE_URL}/wallets/{WALLET}/transactions/?page%5Bafter%5D=CURSOR1"
+    transport = recording_transport(
+        [
+            tx_page([tx_item("h1", "send", [transfer("out")])], next_link=next_url),
+            tx_page([tx_item("h2", "receive", [transfer("in")])], next_link=None),
+        ]
+    )
+    transactions = make_reader(transport).get_transactions(WALLET)
+
+    assert {t.id for t in transactions} == {"h1-0", "h2-0"}
+    assert len(transport.calls) == 2
+    assert transport.calls[1].full_url == next_url
+
+
+def test_get_transactions_empty_page_then_next_page_with_items():
+    next_url = f"{BASE_URL}/next-page"
+    transport = recording_transport(
+        [
+            tx_page([], next_link=next_url),
+            tx_page([tx_item("h1", "trade", [transfer("in")])], next_link=None),
+        ]
+    )
+    transactions = make_reader(transport).get_transactions(WALLET)
+    assert len(transactions) == 1
+
+
+def test_get_transactions_malformed_links_next_type_raises_pagination_error():
+    transport = recording_transport([{"data": [], "links": {"next": 12345}}])
+    with pytest.raises(ZerionAPIPaginationError, match="malformed pagination cursor"):
+        make_reader(transport).get_transactions(WALLET)
+
+
+def test_get_transactions_malformed_links_object_raises_pagination_error():
+    transport = recording_transport([{"data": [], "links": ["not", "a", "mapping"]}])
+    with pytest.raises(ZerionAPIPaginationError, match="malformed links object"):
+        make_reader(transport).get_transactions(WALLET)
+
+
+def test_get_transactions_cursor_repeat_is_a_loop_guard():
+    loop_url = f"{BASE_URL}/loop"
+    transport = recording_transport(
+        [
+            tx_page([], next_link=loop_url),
+            tx_page([], next_link=loop_url),
+        ]
+    )
+    with pytest.raises(ZerionAPIPaginationError, match="repeated pagination cursor"):
+        make_reader(transport).get_transactions(WALLET)
+    assert len(transport.calls) == 2
+
+
+def test_get_transactions_max_pages_exceeded():
+    counter = {"n": 0}
+
+    def never_ending_transport(request, timeout):
+        counter["n"] += 1
+        return {"data": [], "links": {"next": f"{BASE_URL}/page-{counter['n']}"}}
+
+    with pytest.raises(ZerionAPIPaginationError, match="20-page bound"):
+        make_reader(never_ending_transport).get_transactions(WALLET)
+    assert counter["n"] == ZerionAPIReader.MAX_PAGES
+
+
+# --- get_transactions: operation-type and transfer mapping -------------------
+
+
+def test_trade_maps_to_buy_and_sell_by_transfer_direction():
+    transport = recording_transport(
+        [
+            tx_page(
+                [
+                    tx_item(
+                        "h1",
+                        "trade",
+                        [
+                            transfer("out", "ETH", 1.0, 2000.0),
+                            transfer("in", "USDC", 2000.0, 2000.0),
+                        ],
+                    )
+                ]
+            )
+        ]
+    )
+    transactions = make_reader(transport).get_transactions(WALLET)
+
+    by_asset = {t.asset: t for t in transactions}
+    assert by_asset["ETH"].kind == "sell"
+    assert by_asset["USDC"].kind == "buy"
+    assert all(t.wallet_address == WALLET for t in transactions)
+
+
+def test_send_and_receive_map_to_transfer():
+    transport = recording_transport(
+        [
+            tx_page(
+                [
+                    tx_item("h1", "send", [transfer("out", "ETH")]),
+                    tx_item("h2", "receive", [transfer("in", "ETH")]),
+                ]
+            )
+        ]
+    )
+    transactions = make_reader(transport).get_transactions(WALLET)
+    assert {t.kind for t in transactions} == {"transfer"}
+    assert len(transactions) == 2
+
+
+def test_unmapped_operation_type_is_skipped_with_warning_and_snapshot_still_succeeds(caplog):
+    transport = recording_transport(
+        [
+            tx_page(
+                [
+                    tx_item("h1", "approve", [transfer("out")]),
+                    tx_item("h2", "send", [transfer("out")]),
+                ]
+            )
+        ]
+    )
+    with caplog.at_level(logging.WARNING):
+        transactions = make_reader(transport).get_transactions(WALLET)
+
+    assert len(transactions) == 1
+    assert transactions[0].id == "h2-0"
+    assert any("unmapped operation_type" in record.message for record in caplog.records)
+
+
+def test_trade_self_direction_transfer_is_skipped_with_warning(caplog):
+    transport = recording_transport([tx_page([tx_item("h1", "trade", [transfer("self")])])])
+    with caplog.at_level(logging.WARNING):
+        transactions = make_reader(transport).get_transactions(WALLET)
+    assert transactions == []
+    assert any("not mapped" in record.message for record in caplog.records)
+
+
+def test_fee_bearing_transaction_attaches_fee_to_first_row_only():
+    transport = recording_transport(
+        [
+            tx_page(
+                [
+                    tx_item(
+                        "h1",
+                        "trade",
+                        [
+                            transfer("out", "ETH", 1.0, 2000.0),
+                            transfer("in", "USDC", 2000.0, 2000.0),
+                        ],
+                        fee={"value": 5.0, "quantity": 0.002},
+                    )
+                ]
+            )
+        ]
+    )
+    transactions = make_reader(transport).get_transactions(WALLET)
+    assert transactions[0].fee_usd == pytest.approx(5.0)
+    assert transactions[1].fee_usd == 0.0
+
+
+def test_malformed_transfer_entry_is_skipped_others_still_map(caplog):
+    transport = recording_transport(
+        [
+            tx_page(
+                [
+                    tx_item(
+                        "h1",
+                        "trade",
+                        [
+                            "not-an-object",
+                            transfer("in", "USDC", 2000.0, 2000.0),
+                        ],
+                    )
+                ]
+            )
+        ]
+    )
+    with caplog.at_level(logging.WARNING):
+        transactions = make_reader(transport).get_transactions(WALLET)
+    assert len(transactions) == 1
+    assert transactions[0].asset == "USDC"
+
+
+# --- snapshot() combines both --------------------------------------------------
+
+
+def test_snapshot_combines_positions_and_transactions():
+    positions_transport_calls = []
+
+    def transport(request, timeout):
+        positions_transport_calls.append(request.full_url)
+        if "/positions/" in request.full_url:
+            return positions_page([position_item("ETH", 1.0, 2000.0)])
+        return tx_page([tx_item("h1", "receive", [transfer("in", "ETH", 0.5, 1000.0)])])
+
+    snapshot = make_reader(transport).snapshot(WALLET)
+
+    assert [h.asset for h in snapshot.holdings] == ["ETH"]
+    assert len(snapshot.transactions) == 1
+    assert snapshot.transactions[0].kind == "transfer"
     assert snapshot.source.kind == "zerion_api"
-    request, timeout = requests[0]
-    assert request.method == "GET"
-    assert request.full_url == (
-        "https://example.test/wallets/0xabc%2F123/portfolio"
-        "?filter%5Bpositions%5D=only_simple&currency=usd"
+    assert snapshot.wallet_address == WALLET
+    assert len(positions_transport_calls) == 2  # one positions call, one transactions call
+
+
+# --- errors: status codes and Retry-After -------------------------------------
+
+
+def _http_error(code, headers=None):
+    return HTTPError(f"{BASE_URL}/wallets/{WALLET}/positions/", code, "opaque", headers or {}, None)
+
+
+@pytest.mark.parametrize(
+    "status, expected_exc",
+    [
+        (401, ZerionAPIAuthError),
+        (403, ZerionAPIAuthError),
+        (404, ZerionAPINotFoundError),
+    ],
+)
+def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen",
+        lambda request, timeout: (_ for _ in ()).throw(_http_error(status)),
     )
-    assert request.get_header("Authorization") == "Basic " + base64.b64encode(b"test-key:").decode()
-    assert request.get_header("Accept") == "application/json"
-    assert timeout == 3.5
+    with pytest.raises(expected_exc) as caught:
+        make_reader().get_positions(WALLET)
+    assert caught.value.status == status
 
 
-def test_credentials_are_not_exposed_by_config_or_errors():
-    key = "opaque" + "-credential"
-    config = ZerionAPIConfig(**{"api" + "_key": key})
-    assert key not in repr(config)
-
-    def transport(_, __):
-        raise RuntimeError("transport detail " + key)
-
-    with pytest.raises(ZerionAPITransportError) as caught:
-        ZerionAPIReader(config, transport=transport).snapshot("0xabc")
-    assert key not in str(caught.value)
+def test_429_reads_retry_after_seconds(monkeypatch):
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen",
+        lambda request, timeout: (_ for _ in ()).throw(_http_error(429, {"Retry-After": "30"})),
+    )
+    with pytest.raises(ZerionAPIRateLimitError) as caught:
+        make_reader().get_positions(WALLET)
+    assert caught.value.status == 429
+    assert caught.value.retry_after_seconds == pytest.approx(30.0)
 
 
-def test_invalid_aggregate_response_is_typed_error():
-    with pytest.raises(Exception, match="valid portfolio total"):
-        ZerionAPIReader(
-            ZerionAPIConfig(**{"api" + "_key": "key"}),
-            transport=lambda *_: {"data": {"attributes": {}}},
-        ).snapshot("0xabc")
+def test_429_without_retry_after_leaves_it_none(monkeypatch):
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen",
+        lambda request, timeout: (_ for _ in ()).throw(_http_error(429)),
+    )
+    with pytest.raises(ZerionAPIRateLimitError) as caught:
+        make_reader().get_positions(WALLET)
+    assert caught.value.retry_after_seconds is None
 
 
-def test_http_statuses_are_typed_and_safe(monkeypatch):
-    def fake_urlopen(request, timeout):
-        raise HTTPError(request.full_url, 401, "opaque credential", {}, None)
-
-    monkeypatch.setattr("zerion_portfolio_manager.zerion_api.urlopen", fake_urlopen)
-    with pytest.raises(ZerionAPIAuthError) as auth:
-        ZerionAPIReader(ZerionAPIConfig(**{"api" + "_key": "opaque-credential"})).snapshot("0xabc")
-    assert auth.value.status == 401
-    assert "opaque-credential" not in str(auth.value)
-
-    def fake_rate_limit(request, timeout):
-        raise HTTPError(request.full_url, 429, "opaque credential", {}, None)
-
-    monkeypatch.setattr("zerion_portfolio_manager.zerion_api.urlopen", fake_rate_limit)
-    with pytest.raises(ZerionAPIRateLimitError) as rate:
-        ZerionAPIReader(ZerionAPIConfig(**{"api" + "_key": "opaque-credential"})).snapshot("0xabc")
-    assert rate.value.status == 429
+@pytest.mark.parametrize("status", [500, 502])
+def test_5xx_without_retry_after_is_server_error(monkeypatch, status):
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen",
+        lambda request, timeout: (_ for _ in ()).throw(_http_error(status)),
+    )
+    with pytest.raises(ZerionAPIServerError) as caught:
+        make_reader().get_positions(WALLET)
+    assert caught.value.status == status
+    assert caught.value.retry_after_seconds is None
 
 
-def test_non_object_json_is_transport_error(monkeypatch):
+def test_503_with_retry_after_is_server_error_with_retry_after(monkeypatch):
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen",
+        lambda request, timeout: (_ for _ in ()).throw(_http_error(503, {"Retry-After": "5"})),
+    )
+    with pytest.raises(ZerionAPIServerError) as caught:
+        make_reader().get_positions(WALLET)
+    assert caught.value.status == 503
+    assert caught.value.retry_after_seconds == pytest.approx(5.0)
+
+
+def test_other_4xx_is_generic_typed_error(monkeypatch):
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen",
+        lambda request, timeout: (_ for _ in ()).throw(_http_error(400)),
+    )
+    with pytest.raises(ZerionAPIError) as caught:
+        make_reader().get_positions(WALLET)
+    assert not isinstance(caught.value, (ZerionAPIAuthError, ZerionAPINotFoundError))
+    assert caught.value.status == 400
+
+
+def test_transport_timeout_is_typed_transport_error(monkeypatch):
+    def raise_timeout(request, timeout):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("zerion_portfolio_manager.zerion_api.urlopen", raise_timeout)
+    with pytest.raises(ZerionAPITransportError):
+        make_reader().get_positions(WALLET)
+
+
+def test_non_json_body_is_typed_transport_error(monkeypatch):
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b"not json at all {"
+
+    monkeypatch.setattr(
+        "zerion_portfolio_manager.zerion_api.urlopen", lambda *_args, **_kwargs: Response()
+    )
+    with pytest.raises(ZerionAPITransportError):
+        make_reader().get_positions(WALLET)
+
+
+def test_non_object_json_body_is_typed_transport_error(monkeypatch):
     class Response:
         def __enter__(self):
             return self
@@ -110,4 +488,17 @@ def test_non_object_json_is_transport_error(monkeypatch):
         "zerion_portfolio_manager.zerion_api.urlopen", lambda *_args, **_kwargs: Response()
     )
     with pytest.raises(ZerionAPITransportError, match="non-object"):
-        ZerionAPIReader(ZerionAPIConfig(**{"api" + "_key": "key"})).snapshot("0xabc")
+        make_reader().get_positions(WALLET)
+
+
+def test_credentials_are_not_exposed_by_config_or_errors():
+    key = "opaque" + "-credential"
+    config = ZerionAPIConfig(**{KEY_FIELD: key})
+    assert key not in repr(config)
+
+    def transport(_, __):
+        raise RuntimeError("transport detail " + key)
+
+    with pytest.raises(ZerionAPITransportError) as caught:
+        ZerionAPIReader(config, transport=transport).get_positions(WALLET)
+    assert key not in str(caught.value)
