@@ -15,10 +15,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 from .contracts import Holding, PortfolioSnapshot, SourceMetadata
+
+EXPECTED_ZERION_API_HOST = "api.zerion.io"
 
 
 class ZerionAPIError(RuntimeError):
@@ -58,6 +60,11 @@ class ZerionAPIConfig:
             raise ValueError("api_key must be non-empty")
         if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive and finite")
+        parsed = urlparse(self.base_url)
+        if parsed.scheme != "https":
+            raise ValueError("base_url must use https")
+        if parsed.hostname != EXPECTED_ZERION_API_HOST:
+            raise ValueError(f"base_url host must be {EXPECTED_ZERION_API_HOST}")
 
 
 Transport = Callable[[Request, float], Mapping[str, Any]]

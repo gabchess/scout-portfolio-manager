@@ -34,7 +34,7 @@ def test_maps_aggregate_portfolio_and_does_not_invent_ledger_data():
     key_field = "api" + "_key"
     reader = ZerionAPIReader(
         ZerionAPIConfig(
-            **{key_field: "test-key"}, base_url="https://example.test", timeout_seconds=3.5
+            **{key_field: "test-key"}, base_url="https://api.zerion.io/v1", timeout_seconds=3.5
         ),
         transport=transport,
     )
@@ -47,12 +47,22 @@ def test_maps_aggregate_portfolio_and_does_not_invent_ledger_data():
     request, timeout = requests[0]
     assert request.method == "GET"
     assert request.full_url == (
-        "https://example.test/wallets/0xabc%2F123/portfolio"
+        "https://api.zerion.io/v1/wallets/0xabc%2F123/portfolio"
         "?filter%5Bpositions%5D=only_simple&currency=usd"
     )
     assert request.get_header("Authorization") == "Basic " + base64.b64encode(b"test-key:").decode()
     assert request.get_header("Accept") == "application/json"
     assert timeout == 3.5
+
+
+def test_config_rejects_non_https_base_url():
+    with pytest.raises(ValueError, match="https"):
+        ZerionAPIConfig(**{"api" + "_key": "key"}, base_url="http://api.zerion.io/v1")
+
+
+def test_config_rejects_unexpected_base_url_host():
+    with pytest.raises(ValueError, match="api.zerion.io"):
+        ZerionAPIConfig(**{"api" + "_key": "key"}, base_url="https://evil.example/v1")
 
 
 def test_credentials_are_not_exposed_by_config_or_errors():
