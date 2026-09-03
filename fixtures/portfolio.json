@@ -1,0 +1,25 @@
+{
+  "wallet_address": "0xabc123",
+  "chain": "ethereum",
+  "observed_at": "2026-09-03T12:00:00Z",
+  "source": {
+    "kind": "fixture",
+    "locator": "fixtures/portfolio.json",
+    "retrieved_at": "2026-09-03T12:00:00Z"
+  },
+  "holdings": [
+    {"asset": "ETH", "quantity": 1.0, "value_usd": 2250.0}
+  ],
+  "transactions": [
+    {
+      "id": "tx-buy-eth-1",
+      "kind": "buy",
+      "asset": "ETH",
+      "quantity": 1.0,
+      "value_usd": 2000.0,
+      "fee_usd": 0.0,
+      "occurred_at": "2026-08-03T12:00:00Z",
+      "wallet_address": "0xabc123"
+    }
+  ]
+}
