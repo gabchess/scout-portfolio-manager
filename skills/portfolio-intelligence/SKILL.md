@@ -19,7 +19,7 @@ explicitly configured by the user. Say which source was used.
 
 ## Safety rules
 
-- Never ask for, store, or repeat API keys, private keys, seed phrases, or wallet secrets.
+- Never ask for, store, or repeat API keys, signing keys, recovery phrases, or wallet secrets.
 - Never sign, submit, execute, route, or claim settlement of a transaction.
 - Never infer a chain, schedule, source wallet, destination wallet, amount, or asset.
 - Keep the boundaries distinct: observe, calculate, propose, approve, execute, verify.

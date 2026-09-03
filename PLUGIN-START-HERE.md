@@ -38,5 +38,5 @@ fixture, set `ZPM_FIXTURE_PATH` in the host environment. The default fixture is 
 
 This plugin reads portfolio-shaped data, calculates PnL, parses intent, and creates previews.
 It does not connect wallets, sign, submit, execute, or verify settlement. It never needs a
-private key or seed phrase. An API adapter, if separately configured, is read-only and must
+signing key or recovery phrase. An API adapter, if separately configured, is read-only and must
 be treated as an external data source with its own freshness and authorization limits.
