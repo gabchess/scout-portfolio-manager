@@ -13,22 +13,22 @@ class SourceMetadata(BaseModel):
 
 
 class Holding(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     asset: str = Field(min_length=1)
-    quantity: float = Field(ge=0)
-    value_usd: float = Field(ge=0)
+    quantity: float = Field(ge=0, strict=True)
+    value_usd: float = Field(ge=0, strict=True)
 
 
 class Transaction(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     id: str = Field(min_length=1)
     kind: Literal["buy", "sell", "transfer", "fee"]
     asset: str = Field(min_length=1)
-    quantity: float = Field(ge=0)
-    value_usd: float = Field(ge=0)
-    fee_usd: float = Field(default=0, ge=0)
+    quantity: float = Field(ge=0, strict=True)
+    value_usd: float = Field(ge=0, strict=True)
+    fee_usd: float = Field(default=0, ge=0, strict=True)
     occurred_at: datetime
     wallet_address: str = Field(min_length=1)
 
