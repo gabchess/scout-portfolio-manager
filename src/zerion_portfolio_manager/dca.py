@@ -22,23 +22,40 @@ class DcaParseResult(BaseModel):
     question: Optional[str] = None
 
 
+def _single_match(pattern: str, text: str, *, flags: int = re.I) -> Optional[str]:
+    matches = re.findall(pattern, text, flags)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _single_amount(text: str) -> Optional[float]:
+    matches = re.findall(r"\$(\d+(?:\.\d+)?)", text)
+    return float(matches[0]) if len(matches) == 1 else None
+
+
 def parse_dca_request(text: str) -> DcaParseResult:
-    amount = re.search(r"\$(\d+(?:\.\d+)?)", text)
-    asset = re.search(r"\b(ETH|BTC|USDC|SOL)\b", text, re.I)
-    chain = re.search(r"\bon\s+([a-z][a-z0-9-]*)", text, re.I)
-    schedule = re.search(r"\b(one[- ]?time|daily|weekly|monthly)\b", text, re.I)
-    source = re.search(r"\bfrom\s+(wallet:[^\s]+|rail:[^\s]+)", text, re.I)
-    destination = re.search(r"\bto\s+(wallet:[^\s]+|rail:[^\s]+)", text, re.I)
+    asset = _single_match(r"\b(ETH|BTC|USDC|SOL)\b", text)
+    amount_usd = _single_amount(text)
+    chain = _single_match(r"\bon\s+([a-z][a-z0-9-]*)", text)
+    schedule = _single_match(r"\b(one[- ]?time|daily|weekly|monthly)\b", text)
+    source = _single_match(r"\bfrom\s+(wallet:[^\s]+|rail:[^\s]+)", text)
+    destination = _single_match(r"\bto\s+(wallet:[^\s]+|rail:[^\s]+)", text)
     intent = DcaIntent(
-        asset=asset.group(1).upper() if asset else None,
-        amount_usd=float(amount.group(1)) if amount else None,
-        chain=chain.group(1).lower() if chain else None,
-        schedule=schedule.group(1).lower().replace("-", "_").replace(" ", "_") if schedule else None,
-        source=source.group(1) if source else None,
-        destination=destination.group(1) if destination else None,
+        asset=asset.upper() if asset else None,
+        amount_usd=amount_usd,
+        chain=chain.lower() if chain else None,
+        schedule=schedule.lower().replace("-", "_").replace(" ", "_") if schedule else None,
+        source=source,
+        destination=destination,
     )
-    missing = [name for name in ("asset", "amount_usd", "chain", "schedule", "source", "destination")
-               if getattr(intent, name) is None]
+    missing = [
+        name
+        for name in ("asset", "amount_usd", "chain", "schedule", "source", "destination")
+        if getattr(intent, name) is None
+    ]
     question = f"Which {missing[0].replace('_', ' ')} should I use?" if missing else None
-    return DcaParseResult(intent=intent, status="needs_clarification" if missing else "ready",
-                          missing=missing, question=question)
+    return DcaParseResult(
+        intent=intent,
+        status="needs_clarification" if missing else "ready",
+        missing=missing,
+        question=question,
+    )

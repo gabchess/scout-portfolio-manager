@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "product": "zerion-portfolio-intelligence",
+  "version": "0.1.0",
+  "default_source": "synthetic fixture",
+  "optional_sources": ["read-only Zerion aggregate portfolio API"],
+  "surfaces": {
+    "python_host": ["get_portfolio_snapshot", "get_pnl", "parse_dca_request", "preview_dca"],
+    "mcp": ["get_portfolio_snapshot", "get_pnl", "parse_dca_request", "preview_dca"],
+    "claude_code_command": "/portfolio-intelligence"
+  },
+  "capabilities": {
+    "observe": true,
+    "calculate": true,
+    "propose": true,
+    "preview": true,
+    "approve": false,
+    "execute": false,
+    "sign": false,
+    "submit": false,
+    "verify_settlement": false
+  },
+  "data_boundary": "No repository database or hosted retention service; integrating hosts and API providers have separate policies.",
+  "release_notes": "Early release. See WHAT-BROKE.md and RELEASE-MANIFEST.json."
+}

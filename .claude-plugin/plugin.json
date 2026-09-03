@@ -1,0 +1,16 @@
+{
+  "name": "zerion-portfolio-intelligence",
+  "version": "0.1.0",
+  "description": "Read-only portfolio intelligence for fixture data or an explicitly configured Zerion API adapter.",
+  "author": {
+    "name": "Zerion Portfolio Manager contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "portfolio",
+    "crypto",
+    "pnl",
+    "read-only",
+    "mcp"
+  ]
+}

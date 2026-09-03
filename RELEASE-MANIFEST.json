@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "zerion-portfolio-intelligence",
+  "version": "0.1.0",
+  "release_kind": "early-public-release",
+  "license": "MIT",
+  "default_behavior": "fixture-backed and read-only",
+  "optional_integration": {
+    "name": "Zerion API",
+    "mode": "read-only",
+    "scope": "aggregate wallet portfolio observation",
+    "enabled_by_default": false
+  },
+  "execution_boundary": {
+    "wallet_connection": false,
+    "signing": false,
+    "submission": false,
+    "execution": false,
+    "settlement_verification": false
+  },
+  "honesty_artifacts": ["WHAT-BROKE.md", "SECURITY.md", "DATA-AND-PRIVACY.md", "CHANGELOG.md", "SUPPORT.md"],
+  "known_limits": [
+    "Synthetic fixture is not live data.",
+    "API-backed observations depend on endpoint access, authorization, freshness, and availability.",
+    "No production SLA or Zerion endorsement is claimed."
+  ]
+}

@@ -2,10 +2,10 @@
 
 ## Repository boundary
 
-- **Repository:** `/Users/gava/Projects/zerion-portfolio-manager`
+- **Repository:** this repository
 - **Status at start:** did not exist; no files or git history.
-- **Related but excluded:** `/Users/gava/Projects/zerion-migration-scout` is an unrelated, existing Zerion research utility and will not be modified.
-- **Local instructions:** no `AGENTS.md`, `CLAUDE.md`, `README`, or project config exists at the new boundary. The governing product and safety notes are the source-of-truth documents under the Career Upgrade Obsidian vault.
+- **Related but excluded:** unrelated repositories are outside this project and are not modified.
+- **Local instructions:** no `AGENTS.md`, `CLAUDE.md`, `README`, or project config exists at the new boundary. The governing product and safety notes are the public product requirements and docs in this repository.
 - **Authority:** implementation of the approved local MVP is authorized. Real wallet connection, real funds, production credentials, public deployment, GitHub push, and outreach are explicitly excluded and require a separate approval.
 
 ## Observable objective

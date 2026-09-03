@@ -24,9 +24,7 @@ def _require_mcp():
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:  # pragma: no cover - exercised via import error path in tests
-        raise SystemExit(
-            "MCP extra is not installed. Run: pip install -e '.[mcp]'"
-        ) from exc
+        raise SystemExit("MCP extra is not installed. Run: pip install -e '.[mcp]'") from exc
     return FastMCP
 
 

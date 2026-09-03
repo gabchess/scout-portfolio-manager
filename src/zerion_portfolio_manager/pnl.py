@@ -21,9 +21,14 @@ class PnlResult(BaseModel):
     warnings: List[str]
 
 
-def calculate_pnl(*, holding: Holding, basis_usd: float,
-                  valuation_at: datetime, fee_usd: float = 0,
-                  transactions: Optional[Sequence[Transaction]] = None) -> PnlResult:
+def calculate_pnl(
+    *,
+    holding: Holding,
+    basis_usd: float,
+    valuation_at: datetime,
+    fee_usd: float = 0,
+    transactions: Optional[Sequence[Transaction]] = None,
+) -> PnlResult:
     transactions = list(transactions or [])
     sells = [t for t in transactions if t.asset == holding.asset and t.kind == "sell"]
     buys = [t for t in transactions if t.asset == holding.asset and t.kind == "buy"]

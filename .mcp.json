@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zerion-portfolio": {
+      "command": "zpm-mcp",
+      "args": [],
+      "env": {
+        "ZPM_FIXTURE_PATH": "${CLAUDE_PLUGIN_ROOT}/fixtures/portfolio.json"
+      }
+    }
+  }
+}

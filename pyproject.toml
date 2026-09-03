@@ -11,6 +11,7 @@ dependencies = ["pydantic>=2.5,<3"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9"]
+quality = ["ruff>=0.6,<1", "mypy>=1.11,<2"]
 mcp = ["mcp>=1.2,<2"]
 
 [project.scripts]
@@ -20,4 +21,26 @@ zpm-mcp = "zerion_portfolio_manager.mcp_server:main"
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["B011"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "scripts"]
+warn_return_any = true
+warn_unused_configs = true
+disallow_any_generics = true
+exclude = ["^tests/", "^build/"]
+[[tool.mypy.overrides]]
+module = ["zerion_portfolio_manager.mcp_server"]
+ignore_missing_imports = true

@@ -1,26 +1,30 @@
-# Zerion Agentic Portfolio Manager
+# Zerion Portfolio Intelligence
 
-A portable, fixture-backed MVP for the agentic crypto operator. It answers portfolio and PnL questions, parses a user-directed DCA request, produces a complete preview, and simulates execution through a fake adapter.
+A read-only portfolio intelligence plugin and Python package for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
+
+The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's aggregate portfolio through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
 
 ## Safety boundary
 
-This repository does not connect to wallets, use real funds, request credentials, sign transactions, or call Zerion. It is not investment advice or an autonomous trader.
+This project does not connect to wallets, use or move funds, sign transactions, submit transactions, or provide investment advice. A preview is a proposal, not a completed transaction.
 
-The code keeps these boundaries explicit:
+The product keeps these stages distinct:
 
 `observe != calculate != propose != approve != execute != verify`
+
+No execution or signing tool is provided by the host or MCP server.
 
 ## Quick start
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 .venv/bin/pytest -q
 ```
 
-The deterministic fixture is `fixtures/portfolio.json`. The current example contains 1 ETH bought for $2,000 and valued at $2,250, producing a transparent $250 unrealized gain.
+The fixture contains 1 ETH bought for $2,000 and valued at $2,250, producing a transparent $250 unrealized gain. Fixture values are examples, not live market data.
 
-## Example surfaces
+## Python API
 
 ```python
 from pathlib import Path
@@ -31,9 +35,7 @@ snapshot = FixturePortfolioReader(Path("fixtures/portfolio.json")).snapshot()
 answer = read_intent("What is my PnL?", snapshot)
 ```
 
-### Read-only host adapter
-
-Agent runtimes should prefer the host surface. It exposes only observe, calculate, propose, and preview:
+The read-only host exposes observations, calculations, intent parsing, and previews:
 
 ```python
 from zerion_portfolio_manager.host import ReadOnlyHost
@@ -47,7 +49,13 @@ host.preview_dca(
 )
 ```
 
-There is no execute tool on the host. `call_tool("execute", ...)` raises `PermissionError`.
+DCA previews require amount, asset, chain, schedule, source, and destination. Missing details are returned for clarification rather than inferred. A complete preview remains `approval_state=required` and `execution_available=false`.
+
+## Optional Zerion API adapter
+
+The package includes an opt-in, read-only adapter for the aggregate wallet portfolio endpoint. Configure `ZerionAPIConfig` with an API key supplied by your own secret manager; do not paste keys into source, fixtures, prompts, or issue reports. The adapter returns an aggregate holding and does not provide transaction history or execution capabilities. See [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+
+The adapter depends on the endpoint contract and access permitted by your Zerion account. It is not enabled by the default fixture or MCP configuration.
 
 ### Optional MCP server
 
@@ -56,10 +64,24 @@ There is no execute tool on the host. `call_tool("execute", ...)` raises `Permis
 .venv/bin/zpm-mcp
 ```
 
-Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`. Fixture path override: `ZPM_FIXTURE_PATH`.
+Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`. The default remains fixture-backed and offline.
 
-DCA requests remain incomplete until the user explicitly supplies chain, schedule, source, and destination. The fake adapter requires explicit approval, rejects stale quotes and unsafe destinations, protects idempotency keys, and never establishes settlement by itself. `SettlementVerifier` requires independent transaction plus portfolio readback evidence.
+Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to use another local fixture. No wallet, signing, submission, execution, or settlement-verification tool is registered.
 
-## Project status
+## Claude Code plugin
 
-Local MVP and read-only host adapter are implemented. This is not a production Zerion integration. See `IMPLEMENTATION-PLAN.md` for the dependency graph and evidence gates. No public push, deployment, outreach, or real execution is authorized by this repository.
+This repository is also a Claude Code plugin for read-only portfolio intelligence. Local installation and commands are documented in [`PLUGIN-START-HERE.md`](PLUGIN-START-HERE.md).
+
+## Documentation
+
+- [`START-HERE.md`](START-HERE.md) — install and first use
+- [`SECURITY.md`](SECURITY.md) — security boundary and reporting guidance
+- [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) — data handling and API-adapter considerations
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — runtime boundary
+- [`docs/SHOW-ME.md`](docs/SHOW-ME.md) — request and preview flow
+- [`CHANGELOG.md`](CHANGELOG.md) — release history
+- [`SUPPORT.md`](SUPPORT.md) — questions and issue reports
+
+## Status
+
+Version `0.1.0` is an early release: fixture-backed functionality, a read-only host, an optional read-only API adapter, and an optional read-only MCP server. Treat API-backed observations as external data with freshness, availability, and authorization limits.

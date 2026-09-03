@@ -3,12 +3,13 @@
 ```text
 agent runtime / MCP client
   -> ReadOnlyHost (get_portfolio_snapshot | get_pnl | parse_dca_request | preview_dca)
-       -> observe: FixturePortfolioReader -> typed PortfolioSnapshot
+       -> observe: FixturePortfolioReader or optional ZerionAPIReader -> typed PortfolioSnapshot
        -> calculate: PnL calculator -> explainable PnlResult
        -> propose: DCA parser -> partial DcaIntent
-       -> approve: preview requires explicit approval state
-  -> execute: NOT on host; FakeExecutionAdapter only, separate authority
-  -> verify: SettlementVerifier reads evidence independently
+       -> preview: complete request -> approval_state=required
+       -> execution: not exposed by the host or MCP server
 ```
 
-The read-only host is the preferred agent boundary. Optional `zpm-mcp` wraps the same four tools over stdio MCP. The MVP intentionally has no network boundary. A future Zerion adapter belongs behind the observe interface. A future execution rail belongs behind the fake adapter interface and requires a separately approved authority design.
+The default source is a local synthetic fixture. `zpm-mcp` wraps the same four read-only tools over stdio MCP. The optional API adapter is an external, read-only data boundary: its availability, authorization, freshness, and response shape depend on the configured Zerion account and endpoint contract.
+
+The package contains a fake execution adapter for isolated domain/test behavior; it is not wired into the host or MCP server and does not move funds.

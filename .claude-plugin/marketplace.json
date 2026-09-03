@@ -1,0 +1,13 @@
+{
+  "name": "zerion-portfolio-manager",
+  "owner": {
+    "name": "Zerion Portfolio Manager contributors"
+  },
+  "plugins": [
+    {
+      "name": "zerion-portfolio-intelligence",
+      "source": "./",
+      "description": "Read-only portfolio snapshots, explainable PnL, DCA clarification, and safe previews."
+    }
+  ]
+}

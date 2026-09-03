@@ -4,8 +4,7 @@ import pytest
 
 from zerion_portfolio_manager.host import TOOL_NAMES, ReadOnlyHost, default_host
 
-
-FIXTURE = Path("fixtures/portfolio.json")
+FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
 
 
 @pytest.fixture

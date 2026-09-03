@@ -5,7 +5,6 @@ import pytest
 
 from zerion_portfolio_manager.contracts import Holding, PortfolioSnapshot, Transaction
 
-
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "portfolio.json"
 
 

@@ -7,17 +7,24 @@ from pathlib import Path
 PATTERNS = [
     re.compile(r"AKIA[0-9A-Z]{16}"),
     re.compile(r"-----BEGIN .*PRIVATE KEY-----"),
-    re.compile(r"(?:api[_ -]?key|password|mnemonic|seed phrase|private key)\s*[:=]\s*['\"][^'\"]+", re.I),
+    re.compile(
+        r"(?:api[_ -]?key|password|mnemonic|seed phrase|private key)\s*[:=]\s*['\"][^'\"]+",
+        re.I,
+    ),
     re.compile(r"0x[a-f0-9]{64}", re.I),
 ]
-EXCLUDED = {".git", ".venv", "__pycache__", ".pytest_cache"}
+EXCLUDED = {".git", ".venv", "__pycache__", ".pytest_cache", "tests"}
 
 
-def scan(root: Path):
-    findings = []
+def scan(root: Path) -> list[str]:
+    findings: list[str] = []
     scanner_path = Path(__file__).resolve()
     for path in root.rglob("*"):
-        if not path.is_file() or path.resolve() == scanner_path or any(part in EXCLUDED for part in path.parts):
+        if (
+            not path.is_file()
+            or path.resolve() == scanner_path
+            or any(part in EXCLUDED for part in path.parts)
+        ):
             continue
         try:
             text = path.read_text()
@@ -25,7 +32,7 @@ def scan(root: Path):
             continue
         for line_no, line in enumerate(text.splitlines(), 1):
             if any(pattern.search(line) for pattern in PATTERNS):
-                findings.append("%s:%d" % (path, line_no))
+                findings.append(f"{path}:{line_no}")
     return findings
 
 

@@ -99,23 +99,35 @@ class ReadOnlyHost:
                         },
                         "expected_output": {
                             "type": "number",
-                            "description": "Optional quote output quantity. Assumed from fixture price if omitted.",
+                            "description": (
+                                "Optional quote output quantity. Assumed from fixture price "
+                                "if omitted."
+                            ),
                         },
                         "fees_usd": {
                             "type": "number",
-                            "description": "Optional fee in USD. Defaults to a labeled fixture assumption.",
+                            "description": (
+                                "Optional fee in USD. Defaults to a labeled fixture assumption."
+                            ),
                         },
                         "slippage_pct": {
                             "type": "number",
-                            "description": "Optional slippage percent. Defaults to a labeled fixture assumption.",
+                            "description": (
+                                "Optional slippage percent. Defaults to a labeled fixture "
+                                "assumption."
+                            ),
                         },
                         "quote_expiry": {
                             "type": "string",
-                            "description": "Optional ISO-8601 quote expiry. Defaults to now+5m UTC.",
+                            "description": (
+                                "Optional ISO-8601 quote expiry. Defaults to now+5m UTC."
+                            ),
                         },
                         "max_fee_usd": {
                             "type": "number",
-                            "description": "Optional max fee. Defaults to a labeled fixture assumption.",
+                            "description": (
+                                "Optional max fee. Defaults to a labeled fixture assumption."
+                            ),
                         },
                     },
                     "required": ["text"],
@@ -171,8 +183,7 @@ class ReadOnlyHost:
             if target and holding.asset.upper() != target:
                 continue
             buys = [
-                t for t in snapshot.transactions
-                if t.asset == holding.asset and t.kind == "buy"
+                t for t in snapshot.transactions if t.asset == holding.asset and t.kind == "buy"
             ]
             basis = sum(t.value_usd + t.fee_usd for t in buys)
             if not basis:
@@ -231,7 +242,9 @@ class ReadOnlyHost:
         assert intent.amount_usd is not None  # ready status guarantees this
 
         if expected_output is None:
-            expected_output = round(intent.amount_usd / DEFAULT_ETH_USD, 8) if intent.asset == "ETH" else 0.0
+            expected_output = (
+                round(intent.amount_usd / DEFAULT_ETH_USD, 8) if intent.asset == "ETH" else 0.0
+            )
             assumed.append(
                 f"expected_output derived from fixture {intent.asset} price "
                 f"${DEFAULT_ETH_USD if intent.asset == 'ETH' else 'unknown'}"

@@ -1,7 +1,7 @@
 # Show me: runtime shape
 
 ```text
-Fixture JSON
+Synthetic fixture (default) or optional read-only API source
   -> ReadOnlyHost.get_portfolio_snapshot()
   -> PortfolioSnapshot
   -> ReadOnlyHost.get_pnl()
@@ -13,15 +13,13 @@ DCA text
   -> clarification, never inference
   -> ReadOnlyHost.preview_dca()
   -> approval_state = required
-  -> (host stops here; no execute tool)
-  -> FakeExecutionAdapter.execute()   # separate, non-host path only
-  -> SettlementVerifier.verify(readback)
+  -> execution_available = false
 ```
 
-The important boundary is that submission is not settlement:
+The important boundary is:
 
 ```text
-submitted != confirmed != verified
+proposal != submission != confirmation != verification
 ```
 
-No class in this MVP connects to a wallet or network.
+The host and MCP server do not connect to a wallet, sign, submit, or execute. The optional API adapter only observes an aggregate portfolio.

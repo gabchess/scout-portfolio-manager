@@ -6,9 +6,17 @@ from zerion_portfolio_manager.safety import build_preview
 
 def test_preview_contains_all_material_transaction_fields_and_requires_approval():
     preview = build_preview(
-        intent=DcaIntent(asset="ETH", amount_usd=300, chain="ethereum", schedule="one_time",
-                         source="wallet:0xabc123", destination="wallet:0xdef456"),
-        expected_output=0.13, fees_usd=3.0, slippage_pct=0.5,
+        intent=DcaIntent(
+            asset="ETH",
+            amount_usd=300,
+            chain="ethereum",
+            schedule="one_time",
+            source="wallet:0xabc123",
+            destination="wallet:0xdef456",
+        ),
+        expected_output=0.13,
+        fees_usd=3.0,
+        slippage_pct=0.5,
         quote_expiry=datetime(2026, 9, 3, 13, tzinfo=timezone.utc),
         max_fee_usd=5,
     )

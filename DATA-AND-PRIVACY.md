@@ -1,5 +1,17 @@
 # Data and privacy
 
-The MVP reads synthetic JSON fixtures and stores no persistent user data. It does not call Zerion or any execution provider.
+## Default behavior
 
-Future integrations must minimize retention to portfolio observations, user-approved basis, non-secret transaction references, and verification receipts. Credentials belong in a customer-controlled secret manager and must never enter logs, fixtures, prompts, or receipts.
+The default configuration reads the synthetic JSON fixture at `fixtures/portfolio.json`. The local host and MCP server do not persist user data. They do not call Zerion or an execution provider unless an operator separately configures the optional API adapter.
+
+## Optional Zerion adapter
+
+`ZerionAPIReader` makes a read-only request for one wallet's aggregate portfolio when explicitly configured. The adapter receives the wallet address and API credential supplied by its host, and returns an aggregate portfolio snapshot. It does not return transaction history from this endpoint and does not sign, submit, or execute transactions.
+
+The host application is responsible for credential storage, network logs, retention, access control, and deletion. Use a customer-controlled secret manager. Do not place credentials or personal wallet data in source files, fixtures, prompts, logs, or support reports.
+
+API-backed data may be incomplete, stale, unavailable, or subject to the permissions and limits of the configured Zerion account. Review the applicable Zerion terms and privacy documentation before using real wallet data.
+
+## Retention
+
+This repository itself has no database or hosted retention service. Any data retained by an integrating application, MCP client, proxy, operating-system logs, or API provider is outside this repository's control and must be assessed by that operator.

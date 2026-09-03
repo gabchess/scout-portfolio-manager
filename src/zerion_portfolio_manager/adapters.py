@@ -3,7 +3,6 @@ from typing import Dict, Optional, Set
 
 from .safety import DcaPreview
 
-
 FAILURE_CODES = frozenset({"authorization_rejected", "timeout", "settlement_mismatch"})
 
 
@@ -18,8 +17,14 @@ class ExecutionResult:
 
 
 class FakeExecutionAdapter:
-    def __init__(self, *, balance_usd: float = 1000, allowed_destinations=None,
-                 supported_chains=None, failure: Optional[str] = None):
+    def __init__(
+        self,
+        *,
+        balance_usd: float = 1000,
+        allowed_destinations=None,
+        supported_chains=None,
+        failure: Optional[str] = None,
+    ):
         if failure is not None and failure not in FAILURE_CODES:
             raise ValueError("unsupported failure code: %s" % failure)
         self.balance_usd = balance_usd
@@ -29,7 +34,9 @@ class FakeExecutionAdapter:
         self._seen: Dict[str, ExecutionResult] = {}
         self._next_id = 1
 
-    def execute(self, preview: DcaPreview, *, approval: bool, idempotency_key: str) -> ExecutionResult:
+    def execute(
+        self, preview: DcaPreview, *, approval: bool, idempotency_key: str
+    ) -> ExecutionResult:
         if not approval:
             raise ExecutionError("explicit approval is required")
         if self.failure:
