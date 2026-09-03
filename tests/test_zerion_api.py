@@ -5,6 +5,7 @@ from urllib.error import HTTPError
 import pytest
 
 from zerion_portfolio_manager.zerion_api import (
+    EXPECTED_ZERION_API_HOST,
     ZerionAPIAuthError,
     ZerionAPIConfig,
     ZerionAPIError,
@@ -213,6 +214,33 @@ def test_get_transactions_cursor_repeat_is_a_loop_guard():
     with pytest.raises(ZerionAPIPaginationError, match="repeated pagination cursor"):
         make_reader(transport).get_transactions(WALLET)
     assert len(transport.calls) == 2
+
+
+def test_get_transactions_rejects_next_link_pointing_at_unexpected_host():
+    """A links.next cursor to a different host must never be followed.
+
+    _build_request attaches the Basic-auth API key header to whatever URL it is
+    given, so a next-link redirect to an attacker-controlled host would leak the
+    credential in that request's Authorization header. This proves the second
+    (malicious) page is never fetched: the transport is only ever called once.
+    """
+    malicious_next = "https://evil.example.com/wallets/steal"
+    transport = recording_transport(
+        [tx_page([tx_item("h1", "send", [transfer("out")])], next_link=malicious_next)]
+    )
+    with pytest.raises(ZerionAPIPaginationError, match="unexpected"):
+        make_reader(transport).get_transactions(WALLET)
+    assert len(transport.calls) == 1
+
+
+def test_get_transactions_rejects_next_link_with_downgraded_scheme():
+    non_https_next = f"http://{EXPECTED_ZERION_API_HOST}/wallets/{WALLET}/transactions/?page=2"
+    transport = recording_transport(
+        [tx_page([tx_item("h1", "send", [transfer("out")])], next_link=non_https_next)]
+    )
+    with pytest.raises(ZerionAPIPaginationError, match="unexpected"):
+        make_reader(transport).get_transactions(WALLET)
+    assert len(transport.calls) == 1
 
 
 def test_get_transactions_max_pages_exceeded():

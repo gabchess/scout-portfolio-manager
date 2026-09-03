@@ -203,10 +203,29 @@ class ZerionAPIReader:
                 return
             if not isinstance(next_link, str) or not next_link.strip():
                 raise ZerionAPIPaginationError("Zerion API returned a malformed pagination cursor")
+            self._validate_next_link_host(next_link)
             url = next_link
         raise ZerionAPIPaginationError(
             f"Zerion API pagination exceeded the {self.MAX_PAGES}-page bound"
         )
+
+    @staticmethod
+    def _validate_next_link_host(next_link: str) -> None:
+        """Guard against following a pagination cursor off the expected Zerion host.
+
+        ``_build_request`` attaches the Basic-auth API key header to whatever URL
+        it is given, including a followed ``links.next`` cursor. Without this
+        check, a malicious or corrupted next-link could redirect the request to
+        an attacker-controlled host and exfiltrate the credential in the request
+        header. Uses the same ``EXPECTED_ZERION_API_HOST`` that
+        ``ZerionAPIConfig.__post_init__`` already validates ``base_url`` against.
+        """
+        parsed = urlparse(next_link)
+        if parsed.scheme != "https" or parsed.hostname != EXPECTED_ZERION_API_HOST:
+            raise ZerionAPIPaginationError(
+                "Zerion API returned a pagination cursor pointing at an unexpected "
+                f"host (expected https://{EXPECTED_ZERION_API_HOST}); refusing to follow it"
+            )
 
     # --- mapping: positions ------------------------------------------------
 
