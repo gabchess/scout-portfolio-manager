@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed `.mcp.json` launching a bare `zpm-mcp` command, which failed with `ENOENT` unless the repo's `.venv/bin` happened to be on the launching shell's PATH. It now runs `uv run --project . --extra mcp zpm-mcp`, which resolves the project and its optional `mcp` extra from `uv` alone. `ZPM_FIXTURE_PATH` is now a plain relative path (`fixtures/portfolio.json`) instead of a `${CLAUDE_PLUGIN_ROOT}`-prefixed one, since that placeholder is unset when this repo is opened directly as a Claude Code project rather than installed through the plugin marketplace.
 - Wired the read-only Zerion adapter through the host and `zpm-mcp`. Enabled only when `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are both set; a partial pair fails at startup, and API failures return typed errors with no fixture fallback.
 - `ReadOnlyHost` now accepts any zero-argument portfolio reader in addition to a fixture path.
 
