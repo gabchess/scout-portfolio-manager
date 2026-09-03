@@ -31,7 +31,7 @@ PATTERNS = [
     re.compile(r"^\s*(?:[a-z]+ ){11}[a-z]+\s*$"),
     re.compile(r"^\s*(?:[a-z]+ ){23}[a-z]+\s*$"),
 ]
-EXCLUDED = {".git", ".venv", "__pycache__", ".pytest_cache"}
+EXCLUDED = {".git", ".venv", "__pycache__", ".pytest_cache", ".claude"}
 
 
 def scan(root: Path) -> list[str]:

@@ -18,7 +18,7 @@ from zerion_portfolio_manager.zerion_api import (
 
 BASE_URL = "https://api.zerion.io/v1"
 WALLET = "0xabc"
-KEY_FIELD = "api" + "_key"  # avoids a literal "api_key=" token in this file
+KEY_FIELD = "api" + "_key"  # split so this file has no literal api-key assignment token
 
 
 def make_reader(transport=None, **config_kwargs):
