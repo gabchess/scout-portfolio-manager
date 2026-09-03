@@ -7,6 +7,7 @@ Execution stays behind FakeExecutionAdapter and requires a separate authority pa
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from importlib.resources import files
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -331,5 +332,7 @@ def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
 
 
 def default_host(repo_root: Optional[Union[str, Path]] = None) -> ReadOnlyHost:
-    root = Path(repo_root) if repo_root else Path(__file__).resolve().parents[2]
-    return ReadOnlyHost(root / "fixtures" / "portfolio.json")
+    if repo_root:
+        return ReadOnlyHost(Path(repo_root) / "fixtures" / "portfolio.json")
+    packaged_fixture = files("zerion_portfolio_manager").joinpath("data/portfolio.json")
+    return ReadOnlyHost(str(packaged_fixture))

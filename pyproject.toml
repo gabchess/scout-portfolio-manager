@@ -20,6 +20,9 @@ zpm-mcp = "zerion_portfolio_manager.mcp_server:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+zerion_portfolio_manager = ["data/*.json"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 

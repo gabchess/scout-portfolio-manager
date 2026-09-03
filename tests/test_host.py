@@ -108,3 +108,8 @@ def test_default_host_resolves_repo_fixture():
     host = default_host()
     result = host.get_portfolio_snapshot()
     assert result["snapshot"]["holdings"][0]["quantity"] == 1.0
+
+
+def test_default_host_uses_packaged_fixture():
+    host = default_host()
+    assert host.get_portfolio_snapshot()["status"] == "ok"
