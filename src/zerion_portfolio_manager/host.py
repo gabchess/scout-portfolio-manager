@@ -1,7 +1,7 @@
 """Read-only host surface for agent runtimes.
 
 Exposes observe/calculate/propose/preview only. No execute tool exists here.
-Execution stays behind FakeExecutionAdapter and requires a separate authority path.
+FakeExecutionAdapter is test-only and is not part of this host or MCP surface.
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from .safety import build_preview
 from .zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIError,
-    ZerionAPINotFoundError,
     ZerionAPIPaginationError,
     ZerionAPIRateLimitError,
     ZerionAPIServerError,
@@ -325,7 +324,8 @@ class ReadOnlyHost:
         )
         return {
             "status": "preview_ready",
-            "boundary": "approve",
+            "boundary": "preview",
+            "preview_id": preview.preview_id,
             "intent": intent.model_dump(mode="json"),
             "missing": [],
             "question": None,
@@ -346,10 +346,8 @@ def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
         kind = "authorization"
     elif isinstance(exc, ZerionAPIRateLimitError):
         kind = "rate_limit"
-    elif isinstance(exc, ZerionAPINotFoundError):
-        kind = "not_found"
     elif isinstance(exc, ZerionAPIServerError):
-        kind = "server"
+        kind = "retry"
     elif isinstance(exc, ZerionAPIPaginationError):
         kind = "pagination"
     elif isinstance(exc, ZerionAPITransportError):

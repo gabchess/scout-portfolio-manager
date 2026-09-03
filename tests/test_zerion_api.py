@@ -100,7 +100,7 @@ def test_get_positions_maps_single_unpaginated_call():
     assert holdings[0].quantity == pytest.approx(1.5)
     assert holdings[0].value_usd == pytest.approx(3000.0)
     assert len(transport.calls) == 1
-    assert transport.calls[0].full_url == f"{BASE_URL}/wallets/{WALLET}/positions/?currency=usd"
+    assert transport.calls[0].full_url == (f"{BASE_URL}/wallets/{WALLET}/positions/?currency=usd&filter%5Bpositions%5D=only_simple")
 
 
 def test_get_positions_malformed_array_raises():
@@ -406,7 +406,7 @@ def _http_error(code, headers=None):
     [
         (401, ZerionAPIAuthError),
         (403, ZerionAPIAuthError),
-        (404, ZerionAPINotFoundError),
+        (404, ZerionAPIError),
     ],
 )
 def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
@@ -419,15 +419,16 @@ def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
     assert caught.value.status == status
 
 
-def test_429_reads_retry_after_seconds(monkeypatch):
+def test_429_ignores_retry_after_header(monkeypatch):
     monkeypatch.setattr(
         "zerion_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(429, {"Retry-After": "30"})),
     )
+    reader = ZerionAPIReader(ZerionAPIConfig(api_key="k"), transport=None)
+    # force use of default transport path via monkeypatch on urlopen used by _request
     with pytest.raises(ZerionAPIRateLimitError) as caught:
-        make_reader().get_positions(WALLET)
-    assert caught.value.status == 429
-    assert caught.value.retry_after_seconds == pytest.approx(30.0)
+        reader.get_positions(WALLET)
+    assert caught.value.retry_after_seconds is None
 
 
 def test_429_without_retry_after_leaves_it_none(monkeypatch):

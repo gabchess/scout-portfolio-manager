@@ -4,10 +4,15 @@
 call to ``/wallets/{addr}/positions/`` for holdings, and a cursor-paginated
 walk of ``/wallets/{addr}/transactions/`` (via ``links.next``) for the ledger.
 Zerion's own docs state ``/positions/`` takes no pagination parameters; only
-``/transactions/`` paginates. Never invent asset or ledger data: a position
-missing a resolvable symbol, or a transaction with an unmapped operation
-type or a malformed transfer, is skipped with a logged warning rather than
-guessed at.
+``/transactions/`` paginates. NFT position list links are ``self``-only
+(``ResponseManyLinks``) and are never followed here. Do not send
+``filter[min_mined_at]`` / ``filter[max_mined_at]`` in this slice: those query
+params are 13-character epoch-ms strings, while response ``mined_at`` is
+ISO-8601. HTTP 429 has no ``Retry-After`` in the OpenAPI contract; only
+positions 503 documents ``Retry-After``. Never invent asset or ledger data: a
+position missing a resolvable symbol, or a transaction with an unmapped
+operation type or a malformed transfer, is skipped with a logged warning
+rather than guessed at.
 """
 
 from __future__ import annotations
@@ -72,7 +77,7 @@ class ZerionAPIServerError(ZerionAPIError):
 
 
 class ZerionAPINotFoundError(ZerionAPIError):
-    """The requested resource does not exist (HTTP 404)."""
+    """Deprecated. List endpoints must not raise this; use ZerionAPIError for 404."""
 
 
 class ZerionAPIPaginationError(ZerionAPIError):
@@ -440,7 +445,7 @@ class ZerionAPIReader:
 
     def _positions_url(self, wallet_address: str) -> str:
         path = f"/wallets/{quote(wallet_address, safe='')}/positions/"
-        return f"{self.config.base_url.rstrip('/')}{path}?currency=usd"
+        return f"{self.config.base_url.rstrip('/')}{path}?currency=usd&filter%5Bpositions%5D=only_simple"
 
     def _transactions_url(self, wallet_address: str) -> str:
         path = f"/wallets/{quote(wallet_address, safe='')}/transactions/"
@@ -462,14 +467,18 @@ class ZerionAPIReader:
                     "Zerion API authorization failed", status=exc.code
                 ) from None
             if exc.code == 404:
-                raise ZerionAPINotFoundError(
-                    "Zerion API resource not found", status=exc.code
+                # List endpoints return empty data, not 404. If Zerion ever
+                # sends 404 on a list path, keep it as generic API error —
+                # do not invent ZerionAPINotFoundError for lists.
+                raise ZerionAPIError(
+                    "Zerion API returned HTTP 404", status=exc.code
                 ) from None
             if exc.code == 429:
+                # OpenAPI TooManyRequests has no Retry-After. Do not parse it.
                 raise ZerionAPIRateLimitError(
                     "Zerion API rate limit reached",
                     status=exc.code,
-                    retry_after_seconds=retry_after,
+                    retry_after_seconds=None,
                 ) from None
             if 500 <= exc.code < 600:
                 raise ZerionAPIServerError(
