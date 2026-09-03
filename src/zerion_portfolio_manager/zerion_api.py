@@ -41,6 +41,10 @@ class ZerionAPITransportError(ZerionAPIError):
     """The request could not be completed or decoded."""
 
 
+class ZerionConfigError(ValueError):
+    """The environment enables the Zerion source only partially or invalidly."""
+
+
 @dataclass(frozen=True)
 class ZerionAPIConfig:
     """Connection settings; the API key is excluded from representations."""
@@ -169,3 +173,50 @@ class ZerionAPIReader:
         if not isinstance(payload, Mapping):
             raise ZerionAPITransportError("Zerion API returned a non-object JSON response")
         return payload
+
+
+class ZerionWalletReader:
+    """One-wallet view of ZerionAPIReader matching the host's zero-argument reader protocol."""
+
+    def __init__(
+        self, reader: ZerionAPIReader, wallet_address: str, chain: str = "multi-chain"
+    ) -> None:
+        if not isinstance(wallet_address, str) or not wallet_address.strip():
+            raise ValueError("wallet_address must be non-empty")
+        self._reader = reader
+        self.wallet_address = wallet_address
+        self.chain = chain
+
+    def snapshot(self) -> PortfolioSnapshot:
+        return self._reader.snapshot(self.wallet_address, self.chain)
+
+
+# Environment variables that enable the read-only Zerion source. The key and the wallet
+# must BOTH be present; a partial configuration is an error, never a fixture fallback.
+API_KEY_ENV = "ZERION_API_KEY"
+WALLET_ENV = "ZERION_WALLET_ADDRESS"
+CHAIN_ENV = "ZERION_CHAIN"
+
+
+def reader_from_env(
+    environ: Mapping[str, str], *, transport: Optional[Transport] = None
+) -> Optional[ZerionWalletReader]:
+    """Build the Zerion source from the environment, or return None when it is not enabled.
+
+    Returns None only when neither variable is set. Raises ZerionConfigError when exactly
+    one is set, so a half-configured host fails loudly instead of silently serving the
+    fixture. The error message never contains the credential value.
+    """
+    key = (environ.get(API_KEY_ENV) or "").strip()
+    wallet = (environ.get(WALLET_ENV) or "").strip()
+    if not key and not wallet:
+        return None
+    if not key or not wallet:
+        missing = WALLET_ENV if key else API_KEY_ENV
+        raise ZerionConfigError(
+            f"{API_KEY_ENV} and {WALLET_ENV} must both be set to enable the Zerion API "
+            f"source; {missing} is missing. The fixture is not used as a fallback."
+        )
+    chain = (environ.get(CHAIN_ENV) or "").strip() or "multi-chain"
+    api_reader = ZerionAPIReader(ZerionAPIConfig(api_key=key), transport=transport)
+    return ZerionWalletReader(api_reader, wallet, chain)

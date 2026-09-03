@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Wired the read-only Zerion adapter through the host and `zpm-mcp`. Enabled only when `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are both set; a partial pair fails at startup, and API failures return typed errors with no fixture fallback.
+- `ReadOnlyHost` now accepts any zero-argument portfolio reader in addition to a fixture path.
+
 ## 0.1.0 — 2026-09-03
 
 Early public release.

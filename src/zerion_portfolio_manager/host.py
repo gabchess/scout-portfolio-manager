@@ -12,8 +12,14 @@ from typing import Any, Dict, List, Optional, Union
 
 from .dca import DcaIntent, parse_dca_request
 from .pnl import PnlResult, calculate_pnl
-from .portfolio import FixturePortfolioReader
+from .portfolio import FixturePortfolioReader, PortfolioReader
 from .safety import build_preview
+from .zerion_api import (
+    ZerionAPIAuthError,
+    ZerionAPIError,
+    ZerionAPIRateLimitError,
+    ZerionAPITransportError,
+)
 
 TOOL_NAMES = (
     "get_portfolio_snapshot",
@@ -32,10 +38,17 @@ DEFAULT_QUOTE_TTL_SECONDS = 300
 
 
 class ReadOnlyHost:
-    """Fixture-backed read-only adapter suitable for MCP or direct Python hosts."""
+    """Read-only adapter suitable for MCP or direct Python hosts.
 
-    def __init__(self, fixture_path: Union[str, Path]):
-        self.reader = FixturePortfolioReader(fixture_path)
+    Accepts a fixture path (default) or any zero-argument PortfolioReader, such as the
+    optional ZerionWalletReader. The host never switches source on its own: if the
+    configured reader fails, callers get a typed error, not fixture data.
+    """
+
+    def __init__(self, source: Union[str, Path, PortfolioReader]):
+        self.reader: PortfolioReader = (
+            FixturePortfolioReader(source) if isinstance(source, (str, Path)) else source
+        )
 
     def tool_manifest(self) -> List[Dict[str, Any]]:
         """MCP-shaped tool descriptors. No execute capability is advertised."""
@@ -43,7 +56,8 @@ class ReadOnlyHost:
             {
                 "name": "get_portfolio_snapshot",
                 "description": (
-                    "Observe the current fixture-backed portfolio snapshot. "
+                    "Observe the current portfolio snapshot from the configured read-only "
+                    "source (fixture by default, or the Zerion API when enabled). "
                     "Read-only. Returns typed holdings and transactions."
                 ),
                 "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
@@ -167,7 +181,10 @@ class ReadOnlyHost:
         raise ValueError(f"unknown tool: {name}")
 
     def get_portfolio_snapshot(self) -> Dict[str, Any]:
-        snapshot = self.reader.snapshot()
+        try:
+            snapshot = self.reader.snapshot()
+        except ZerionAPIError as exc:
+            return _observe_error(exc)
         return {
             "status": "ok",
             "boundary": "observe",
@@ -175,7 +192,10 @@ class ReadOnlyHost:
         }
 
     def get_pnl(self, asset: Optional[str] = None) -> Dict[str, Any]:
-        snapshot = self.reader.snapshot()
+        try:
+            snapshot = self.reader.snapshot()
+        except ZerionAPIError as exc:
+            return _observe_error(exc)
         target = asset.upper() if asset else None
         results: List[PnlResult] = []
         unknown: List[str] = []
@@ -289,6 +309,25 @@ class ReadOnlyHost:
                 "rail are required before any submission."
             ),
         }
+
+
+def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
+    """Typed, credential-free observe failure. No fixture fallback happens here."""
+    if isinstance(exc, ZerionAPIAuthError):
+        kind = "authorization"
+    elif isinstance(exc, ZerionAPIRateLimitError):
+        kind = "rate_limit"
+    elif isinstance(exc, ZerionAPITransportError):
+        kind = "transport"
+    else:
+        kind = "api"
+    return {
+        "status": "error",
+        "boundary": "observe",
+        "source": "zerion_api",
+        "error": {"kind": kind, "message": str(exc), "http_status": exc.status},
+        "fallback": "none",
+    }
 
 
 def default_host(repo_root: Optional[Union[str, Path]] = None) -> ReadOnlyHost:

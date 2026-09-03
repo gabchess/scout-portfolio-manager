@@ -57,6 +57,35 @@ The package includes an opt-in, read-only adapter for the aggregate wallet portf
 
 The adapter depends on the endpoint contract and access permitted by your Zerion account. It is not enabled by the default fixture or MCP configuration.
 
+### Enabling the Zerion source for the host and MCP server
+
+The host and `zpm-mcp` read the source from the environment at startup. Both variables are required; setting only one is a configuration error, and the server exits with a message that names the missing variable and never echoes the key.
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `ZERION_API_KEY` | yes | Read-only Zerion API key from your secret manager |
+| `ZERION_WALLET_ADDRESS` | yes | The one wallet address to observe |
+| `ZERION_CHAIN` | no | Label stored on the snapshot; defaults to `multi-chain` |
+| `ZPM_FIXTURE_PATH` | no | Local fixture used only when the Zerion source is not enabled |
+
+```bash
+export ZERION_API_KEY=$(cat ~/secrets/zerion-api-key)   # never paste the value inline
+export ZERION_WALLET_ADDRESS=0xYourWalletAddress
+.venv/bin/zpm-mcp
+```
+
+When enabled, `get_portfolio_snapshot` returns `source.kind = "zerion_api"` and a single aggregate `PORTFOLIO` holding with no transactions, so `get_pnl` reports a missing acquisition basis rather than inventing one. If the API rejects the key, rate-limits, or fails, the tools return `status: "error"` with a typed `error.kind` and `fallback: "none"`. The fixture is never served in place of a failed API call.
+
+Python callers can do the same without environment variables:
+
+```python
+from zerion_portfolio_manager.host import ReadOnlyHost
+from zerion_portfolio_manager.zerion_api import ZerionAPIConfig, ZerionAPIReader, ZerionWalletReader
+
+reader = ZerionWalletReader(ZerionAPIReader(ZerionAPIConfig(api_key=key_from_secret_manager)), wallet)
+host = ReadOnlyHost(reader)
+```
+
 ### Optional MCP server
 
 ```bash
@@ -66,7 +95,7 @@ The adapter depends on the endpoint contract and access permitted by your Zerion
 
 Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`. The default remains fixture-backed and offline.
 
-Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to use another local fixture. No wallet, signing, submission, execution, or settlement-verification tool is registered.
+Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to use another local fixture, or set both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` to observe one real wallet read-only (see above). No wallet, signing, submission, execution, or settlement-verification tool is registered.
 
 ## Claude Code plugin
 

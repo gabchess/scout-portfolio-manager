@@ -1,8 +1,14 @@
 import json
 from pathlib import Path
-from typing import Union
+from typing import Protocol, Union
 
 from .contracts import PortfolioSnapshot
+
+
+class PortfolioReader(Protocol):
+    """Zero-argument observe-only source. Any reader the host accepts implements this."""
+
+    def snapshot(self) -> PortfolioSnapshot: ...
 
 
 class FixturePortfolioReader:

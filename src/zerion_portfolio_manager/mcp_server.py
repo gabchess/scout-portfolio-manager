@@ -2,19 +2,32 @@
 
 Requires the optional dependency: pip install -e '.[mcp]'
 
-No execute, sign, wallet, or network tools are registered.
+No execute, sign, wallet, or network tools are registered. The only network access is
+the read-only Zerion source, and only when ZERION_API_KEY and ZERION_WALLET_ADDRESS are
+both set in the server's environment.
 """
 
 from __future__ import annotations
 
 import json
 import os
+from typing import Mapping
 
 from .host import ReadOnlyHost, default_host
+from .zerion_api import ZerionConfigError, reader_from_env
 
 
-def build_host() -> ReadOnlyHost:
-    fixture = os.environ.get("ZPM_FIXTURE_PATH")
+def build_host(environ: Mapping[str, str] | None = None) -> ReadOnlyHost:
+    """Pick the source from the environment.
+
+    Zerion API when ZERION_API_KEY and ZERION_WALLET_ADDRESS are both set; a partial pair
+    raises ZerionConfigError. Otherwise ZPM_FIXTURE_PATH, then the packaged fixture.
+    """
+    env = os.environ if environ is None else environ
+    reader = reader_from_env(env)
+    if reader is not None:
+        return ReadOnlyHost(reader)
+    fixture = env.get("ZPM_FIXTURE_PATH")
     if fixture:
         return ReadOnlyHost(fixture)
     return default_host()
@@ -82,7 +95,10 @@ def create_server(host: ReadOnlyHost | None = None):
 
 
 def main() -> None:
-    server = create_server()
+    try:
+        server = create_server()
+    except ZerionConfigError as exc:
+        raise SystemExit(f"zpm-mcp: {exc}") from None
     server.run(transport="stdio")
 
 
