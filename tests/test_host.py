@@ -12,8 +12,8 @@ from zerion_portfolio_manager.host import (
     error_kind_counts,
 )
 from zerion_portfolio_manager.zerion_api import (
+    ZerionAPIError,
     ZerionAPIAuthError,
-    ZerionAPINotFoundError,
     ZerionAPIPaginationError,
     ZerionAPIServerError,
 )
@@ -90,6 +90,7 @@ def test_preview_dca_blocks_incomplete_request(host: ReadOnlyHost):
     result = host.preview_dca("DCA another $300 of ETH")
     assert result["status"] == "needs_clarification"
     assert result["preview"] is None
+    assert "preview_id" not in result
 
 
 def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost):
@@ -102,7 +103,9 @@ def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost)
         max_fee_usd=5.0,
     )
     assert result["status"] == "preview_ready"
-    assert result["boundary"] == "approve"
+    assert result["boundary"] == "preview"
+    assert isinstance(result["preview_id"], str) and result["preview_id"]
+    assert result["preview_id"] == result["preview"]["preview_id"]
     assert result["approval_state"] == "required"
     assert result["execution_available"] is False
     preview = result["preview"]
@@ -117,10 +120,28 @@ def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost)
 def test_call_tool_dispatches_and_rejects_execute(host: ReadOnlyHost):
     snap = host.call_tool("get_portfolio_snapshot")
     assert snap["boundary"] == "observe"
-    with pytest.raises(PermissionError, match="not available on the read-only host"):
-        host.call_tool("execute", {"text": "DCA $300 ETH"})
     with pytest.raises(ValueError, match="unknown tool"):
         host.call_tool("not_a_tool")
+
+
+@pytest.mark.parametrize("tool_name", ["execute", "execute_dca", "submit", "sign"])
+def test_call_tool_permission_error_for_write_names(host: ReadOnlyHost, tool_name: str):
+    with pytest.raises(PermissionError, match="not available on the read-only host"):
+        host.call_tool(tool_name, {"text": "DCA $300 ETH"})
+
+
+def test_preview_dca_mints_distinct_preview_ids(host: ReadOnlyHost):
+    text = "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456"
+    kwargs = dict(
+        expected_output=0.13,
+        fees_usd=3.0,
+        slippage_pct=0.5,
+        quote_expiry="2026-09-03T13:00:00+00:00",
+        max_fee_usd=5.0,
+    )
+    a = host.preview_dca(text, **kwargs)
+    b = host.preview_dca(text, **kwargs)
+    assert a["preview_id"] != b["preview_id"]
 
 
 def test_default_host_resolves_repo_fixture():
@@ -163,8 +184,8 @@ class _FailingReader:
 @pytest.mark.parametrize(
     "exc, expected_kind",
     [
-        (ZerionAPINotFoundError("missing", status=404), "not_found"),
-        (ZerionAPIServerError("boom", status=503), "server"),
+        (ZerionAPIError("missing", status=404), "api"),
+        (ZerionAPIServerError("boom", status=503), "retry"),
         (ZerionAPIPaginationError("bad cursor"), "pagination"),
     ],
 )

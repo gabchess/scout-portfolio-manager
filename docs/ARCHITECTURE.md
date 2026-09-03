@@ -6,9 +6,11 @@ agent runtime / MCP client
        -> observe: FixturePortfolioReader or optional ZerionAPIReader -> typed PortfolioSnapshot
        -> calculate: PnL calculator -> explainable PnlResult
        -> propose: DCA parser -> partial DcaIntent
-       -> preview: complete request -> approval_state=required
+       -> preview: complete request -> approval_state=required + host-minted preview_id
        -> execution: not exposed by the host or MCP server
 ```
+
+`preview_id` is host-minted identity on every complete preview envelope. There is no session store and no execute rail in this package surface.
 
 The default source is a local synthetic fixture. `zpm-mcp` wraps the same four read-only tools over stdio MCP and selects the source from the environment: the Zerion API only when `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are both set, otherwise the fixture. A partial pair is a startup error, and an API failure at call time returns a typed error rather than fixture data. The optional API adapter is an external, read-only data boundary: its availability, authorization, freshness, and response shape depend on the configured Zerion account and endpoint contract.
 
@@ -22,7 +24,7 @@ every position in one call. `GET /wallets/{addr}/transactions/` paginates: the r
 requests `page[size]=100` and follows `links.next` until the API stops returning a next
 cursor, bounded by `ZerionAPIReader.MAX_PAGES` (20). Hitting the page cap while a next
 cursor is still present, or receiving a malformed or repeated cursor, raises
-`ZerionAPIPaginationError` rather than silently truncating the ledger.
+`ZerionAPIPaginationError` rather than silently truncating the ledger. NFT list links (`ResponseManyLinks`) are `self`-only and are never followed. Do not send `filter[min_mined_at]` here (epoch-ms query vs ISO response). HTTP 429 has no `Retry-After` in OpenAPI; only positions 503 documents it.
 
 ## Tool versioning
 
