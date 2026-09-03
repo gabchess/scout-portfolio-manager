@@ -1,8 +1,22 @@
+import logging
 from pathlib import Path
 
 import pytest
 
-from zerion_portfolio_manager.host import TOOL_NAMES, ReadOnlyHost, default_host
+from zerion_portfolio_manager import __version__
+from zerion_portfolio_manager.host import (
+    DEFAULT_ETH_USD,
+    TOOL_NAMES,
+    ReadOnlyHost,
+    default_host,
+    error_kind_counts,
+)
+from zerion_portfolio_manager.zerion_api import (
+    ZerionAPIAuthError,
+    ZerionAPINotFoundError,
+    ZerionAPIPaginationError,
+    ZerionAPIServerError,
+)
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
 
@@ -17,6 +31,11 @@ def test_tool_manifest_is_read_only_and_complete(host: ReadOnlyHost):
     assert names == list(TOOL_NAMES)
     assert "execute" not in names
     assert "execute_dca" not in names
+
+
+def test_tool_manifest_entries_carry_a_version(host: ReadOnlyHost):
+    for tool in host.tool_manifest():
+        assert tool["version"] == __version__
 
 
 def test_get_portfolio_snapshot_observes_fixture(host: ReadOnlyHost):
@@ -113,3 +132,58 @@ def test_default_host_resolves_repo_fixture():
 def test_default_host_uses_packaged_fixture():
     host = default_host()
     assert host.get_portfolio_snapshot()["status"] == "ok"
+
+
+# --- ZPM-058: preview_dca_live assumed-price labeling ------------------------
+
+
+def test_preview_dca_live_labels_assumed_price_as_fixture_only(host: ReadOnlyHost):
+    result = host.preview_dca(
+        "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456"
+    )
+    assert result["status"] == "preview_ready"
+    assumed_price_note = next(a for a in result["assumed"] if "expected_output" in a)
+    assert "DEFAULT_ETH_USD" in assumed_price_note
+    assert str(DEFAULT_ETH_USD) in assumed_price_note
+    assert "fixture-only" in assumed_price_note
+    assert "never a live quote" in assumed_price_note
+
+
+# --- ZPM-052 / ZPM-060: error taxonomy + observe_error_logged ----------------
+
+
+class _FailingReader:
+    def __init__(self, exc: Exception) -> None:
+        self._exc = exc
+
+    def snapshot(self):
+        raise self._exc
+
+
+@pytest.mark.parametrize(
+    "exc, expected_kind",
+    [
+        (ZerionAPINotFoundError("missing", status=404), "not_found"),
+        (ZerionAPIServerError("boom", status=503), "server"),
+        (ZerionAPIPaginationError("bad cursor"), "pagination"),
+    ],
+)
+def test_observe_error_maps_new_error_taxonomy_kinds(exc, expected_kind):
+    result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
+    assert result["status"] == "error"
+    assert result["error"]["kind"] == expected_kind
+
+
+def test_observe_error_logged_emits_structured_log_and_increments_counter(caplog):
+    before = error_kind_counts().get("authorization", 0)
+    with caplog.at_level(logging.WARNING):
+        result = ReadOnlyHost(
+            _FailingReader(ZerionAPIAuthError("denied", status=401))
+        ).get_portfolio_snapshot()
+    assert result["error"]["kind"] == "authorization"
+
+    matching = [r for r in caplog.records if "error.kind=authorization" in r.message]
+    assert matching, "expected a structured log line naming error.kind=authorization"
+
+    after = error_kind_counts().get("authorization", 0)
+    assert after == before + 1

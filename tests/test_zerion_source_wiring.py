@@ -28,7 +28,28 @@ from zerion_portfolio_manager.zerion_api import (
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
 CREDENTIAL = "opaque" + "-credential-value"
 WALLET = "0xabc123"
-PAYLOAD = {"data": {"attributes": {"total": {"positions": 2017.48}}}}
+
+# Positions/transactions-shaped responses mirroring the injected-transport pattern in
+# tests/test_zerion_api.py: one ETH position, no matching buy transaction (so PnL has
+# no acquisition basis).
+POSITIONS_PAYLOAD = {
+    "data": [
+        {
+            "attributes": {
+                "quantity": 1.5,
+                "value": 2017.48,
+                "fungible_info": {"symbol": "ETH"},
+            }
+        }
+    ]
+}
+TRANSACTIONS_PAYLOAD = {"data": []}
+
+
+def positions_or_transactions_transport(request, timeout):
+    if "/positions/" in request.full_url:
+        return POSITIONS_PAYLOAD
+    return TRANSACTIONS_PAYLOAD
 
 
 def enabled_env(**extra):
@@ -75,16 +96,19 @@ def test_bound_reader_observes_configured_wallet_only():
 
     def transport(request, timeout):
         seen.append(request.full_url)
-        return PAYLOAD
+        return positions_or_transactions_transport(request, timeout)
 
     reader = reader_from_env(enabled_env(), transport=transport)
     snapshot = reader.snapshot()
     assert snapshot.wallet_address == WALLET
     assert snapshot.source.kind == "zerion_api"
+    assert snapshot.holdings[0].asset == "ETH"
     assert snapshot.holdings[0].value_usd == pytest.approx(2017.48)
+    assert snapshot.transactions == []
     assert seen == [
-        f"https://api.zerion.io/v1/wallets/{WALLET}/portfolio"
-        "?filter%5Bpositions%5D=only_simple&currency=usd"
+        f"https://api.zerion.io/v1/wallets/{WALLET}/positions/?currency=usd",
+        f"https://api.zerion.io/v1/wallets/{WALLET}/transactions/"
+        "?currency=usd&page%5Bsize%5D=100&filter%5Boperation_types%5D=trade%2Csend%2Creceive",
     ]
     assert CREDENTIAL not in repr(reader) and CREDENTIAL not in repr(reader._reader.config)
 
@@ -93,15 +117,18 @@ def test_bound_reader_observes_configured_wallet_only():
 
 
 def test_host_reports_zerion_source_in_snapshot_and_pnl():
-    host = ReadOnlyHost(reader_from_env(enabled_env(), transport=lambda *_: PAYLOAD))
+    host = ReadOnlyHost(
+        reader_from_env(enabled_env(), transport=positions_or_transactions_transport)
+    )
     snap = host.get_portfolio_snapshot()
     assert snap["status"] == "ok"
     assert snap["snapshot"]["source"]["kind"] == "zerion_api"
     assert snap["snapshot"]["wallet_address"] == WALLET
+    assert snap["snapshot"]["holdings"][0]["asset"] == "ETH"
     pnl = host.get_pnl()
     assert pnl["status"] == "ok"
-    assert pnl["results"] == []  # aggregate endpoint has no ledger, so no basis
-    assert pnl["unknown"] == ["missing acquisition basis for PORTFOLIO"]
+    assert pnl["results"] == []  # no buy transactions observed, so no acquisition basis
+    assert pnl["unknown"] == ["missing acquisition basis for ETH"]
 
 
 def test_host_returns_typed_error_and_no_fixture_data_when_api_rejects_credential(monkeypatch):
@@ -149,7 +176,9 @@ def test_host_still_accepts_fixture_path_and_reader_objects():
 
 def test_tool_manifest_unchanged_by_source():
     fixture_names = [t["name"] for t in ReadOnlyHost(FIXTURE).tool_manifest()]
-    api_host = ReadOnlyHost(reader_from_env(enabled_env(), transport=lambda *_: PAYLOAD))
+    api_host = ReadOnlyHost(
+        reader_from_env(enabled_env(), transport=positions_or_transactions_transport)
+    )
     assert [t["name"] for t in api_host.tool_manifest()] == fixture_names
     assert not any("execute" in name for name in fixture_names)
 
