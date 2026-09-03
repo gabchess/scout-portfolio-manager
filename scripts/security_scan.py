@@ -12,8 +12,26 @@ PATTERNS = [
         re.I,
     ),
     re.compile(r"0x[a-f0-9]{64}", re.I),
+    # GitHub personal access / fine-grained tokens.
+    re.compile(r"\bghp_[A-Za-z0-9]{36,}\b"),
+    re.compile(r"\bgh[oprs]_[A-Za-z0-9]{36,}\b"),
+    # OpenAI / generic "sk-" secret keys and Stripe live secret keys.
+    re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bsk_live_[A-Za-z0-9]{16,}\b"),
+    # Slack bot/user tokens.
+    re.compile(r"\bxox[bp]-[A-Za-z0-9-]{10,}\b"),
+    # Google API keys.
+    re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
+    # JWT-shaped tokens (three base64url segments).
+    re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),
+    # Bare BIP-39 mnemonic: the entire line is nothing but 12 or 24
+    # space-separated lowercase words, with no other content. Anchored to
+    # the whole line (rather than any 12-word run) so ordinary prose in
+    # docs/comments doesn't false-positive.
+    re.compile(r"^\s*(?:[a-z]+ ){11}[a-z]+\s*$"),
+    re.compile(r"^\s*(?:[a-z]+ ){23}[a-z]+\s*$"),
 ]
-EXCLUDED = {".git", ".venv", "__pycache__", ".pytest_cache", "tests"}
+EXCLUDED = {".git", ".venv", "__pycache__", ".pytest_cache"}
 
 
 def scan(root: Path) -> list[str]:
