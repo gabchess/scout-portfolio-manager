@@ -12,7 +12,7 @@ class PortfolioReader(Protocol):
 
 
 class FixturePortfolioReader:
-    """Observe-only reader for deterministic, Zerion-shaped fixture data."""
+    """Observe-only reader for deterministic, provider-shaped fixture data."""
 
     def __init__(self, fixture_path: Union[str, Path]):
         self.fixture_path = Path(fixture_path)

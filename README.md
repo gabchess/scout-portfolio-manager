@@ -1,4 +1,4 @@
-# Zerion Portfolio Intelligence
+# Portfolio Intel
 
 A read-only portfolio intelligence plugin and Python package for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
 

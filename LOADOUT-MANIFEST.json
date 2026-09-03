@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "product": "zerion-portfolio-intelligence",
+  "product": "portfolio-intel",
   "version": "0.1.0",
   "default_source": "synthetic fixture",
   "optional_sources": ["read-only Zerion aggregate portfolio API"],

@@ -32,8 +32,8 @@ The default fixture is synthetic. It is the default data source and is not live 
 ## 4. Use the Claude Code plugin locally
 
 ```text
-/plugin marketplace add /path/to/zerion-portfolio-manager
-/plugin install zerion-portfolio-intelligence@zerion-portfolio-manager
+/plugin marketplace add /path/to/portfolio-manager
+/plugin install portfolio-intel@portfolio-manager
 ```
 
 Then try:

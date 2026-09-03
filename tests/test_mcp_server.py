@@ -45,7 +45,7 @@ def test_create_server_registers_only_read_tools(monkeypatch):
 
     monkeypatch.setattr(mcp_server, "_require_mcp", lambda: FakeMCP)
     server = mcp_server.create_server(ReadOnlyHost(FIXTURE))
-    assert server.name == "zerion-portfolio-manager"
+    assert server.name == "portfolio-manager"
     assert list(registered) == [
         "get_portfolio_snapshot",
         "get_pnl",
