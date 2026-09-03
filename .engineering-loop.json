@@ -236,8 +236,8 @@
     "investment advice or autonomous trading"
   ],
   "objective": "Build and verify the approved fixture-backed Zerion Agentic Portfolio Manager MVP with explicit observe/calculate/propose/approve/execute/verify boundaries",
-  "phase": "verify",
+  "phase": "gate",
   "repo": "/Users/gava/Projects/zerion-portfolio-manager",
-  "revision": 29,
+  "revision": 30,
   "schema_version": 2
 }
