@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from zerion_portfolio_manager import __version__
 from zerion_portfolio_manager.host import TOOL_NAMES, ReadOnlyHost, default_host
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
@@ -17,6 +18,11 @@ def test_tool_manifest_is_read_only_and_complete(host: ReadOnlyHost):
     assert names == list(TOOL_NAMES)
     assert "execute" not in names
     assert "execute_dca" not in names
+
+
+def test_tool_manifest_entries_carry_a_version(host: ReadOnlyHost):
+    for tool in host.tool_manifest():
+        assert tool["version"] == __version__
 
 
 def test_get_portfolio_snapshot_observes_fixture(host: ReadOnlyHost):

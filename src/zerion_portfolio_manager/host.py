@@ -11,6 +11,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from . import __version__
 from .dca import DcaIntent, parse_dca_request
 from .pnl import PnlResult, calculate_pnl
 from .portfolio import FixturePortfolioReader, PortfolioReader
@@ -56,6 +57,7 @@ class ReadOnlyHost:
         return [
             {
                 "name": "get_portfolio_snapshot",
+                "version": __version__,
                 "description": (
                     "Observe the current portfolio snapshot from the configured read-only "
                     "source (fixture by default, or the Zerion API when enabled). "
@@ -65,6 +67,7 @@ class ReadOnlyHost:
             },
             {
                 "name": "get_pnl",
+                "version": __version__,
                 "description": (
                     "Calculate explainable USD PnL from the observed snapshot. "
                     "Optionally filter by asset symbol. Read-only."
@@ -82,6 +85,7 @@ class ReadOnlyHost:
             },
             {
                 "name": "parse_dca_request",
+                "version": __version__,
                 "description": (
                     "Parse a user DCA request into explicit fields. "
                     "Missing fields produce clarification questions. Never infers wallets, "
@@ -101,6 +105,7 @@ class ReadOnlyHost:
             },
             {
                 "name": "preview_dca",
+                "version": __version__,
                 "description": (
                     "Parse a DCA request and, if complete, build a full preview with "
                     "approval_state=required. Does not execute, sign, or submit."
