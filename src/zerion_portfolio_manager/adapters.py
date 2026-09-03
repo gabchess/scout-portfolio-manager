@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, Optional, Set
 
 from .safety import DcaPreview
+
+
+FAILURE_CODES = frozenset({"authorization_rejected", "timeout", "settlement_mismatch"})
 
 
 class ExecutionError(RuntimeError):
@@ -16,10 +19,12 @@ class ExecutionResult:
 
 class FakeExecutionAdapter:
     def __init__(self, *, balance_usd: float = 1000, allowed_destinations=None,
-                 supported_chains=None, failure=None):
+                 supported_chains=None, failure: Optional[str] = None):
+        if failure is not None and failure not in FAILURE_CODES:
+            raise ValueError("unsupported failure code: %s" % failure)
         self.balance_usd = balance_usd
-        self.allowed_destinations = set(allowed_destinations or {"wallet:0xdef456"})
-        self.supported_chains = set(supported_chains or {"ethereum"})
+        self.allowed_destinations: Set[str] = set(allowed_destinations or {"wallet:0xdef456"})
+        self.supported_chains: Set[str] = set(supported_chains or {"ethereum"})
         self.failure = failure
         self._seen: Dict[str, ExecutionResult] = {}
         self._next_id = 1
