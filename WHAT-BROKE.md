@@ -10,3 +10,4 @@ This file records important limits so the release is not mistaken for a producti
 - DCA parsing and previews do not submit, sign, execute, or verify settlement. A preview is not evidence that an order occurred.
 - The package contains a fake execution adapter for isolated domain behavior; it is not connected to the host or MCP server and does not touch funds.
 - No production deployment, uptime target, support SLA, investment advice, or Zerion endorsement is claimed.
+- The `quantity` field shape on positions/transactions (a bare float vs. a `{"float": ...}` object) is unconfirmed against a real live payload. `_numeric_amount()` accepts both shapes defensively, but a live 429 rate-limit was hit before this could be checked against a real response, and the wallet used for the one successful live transactions call had zero items either way. This is a known, live-unconfirmed caveat, moderate confidence only.
