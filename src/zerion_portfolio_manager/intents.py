@@ -46,7 +46,8 @@ def read_intent(text: str, snapshot: PortfolioSnapshot) -> ReadIntentResult:
             basis = sum(t.value_usd + t.fee_usd for t in buys)
             if basis:
                 result = calculate_pnl(holding=holding, basis_usd=basis,
-                                       valuation_at=snapshot.observed_at)
+                                       valuation_at=snapshot.observed_at,
+                                       transactions=snapshot.transactions)
                 sign = "+" if result.unrealized_usd >= 0 else ""
                 calculated.append(f"{sign}${result.unrealized_usd:.0f} ({result.return_pct:.1f}%)")
             else:
