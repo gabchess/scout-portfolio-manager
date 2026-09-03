@@ -2,7 +2,7 @@
 
 A read-only portfolio intelligence plugin and Python package for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
 
-The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's aggregate portfolio through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
+The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's real per-asset holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
 
 ## Safety boundary
 
@@ -53,7 +53,7 @@ DCA previews require amount, asset, chain, schedule, source, and destination. Mi
 
 ## Optional Zerion API adapter
 
-The package includes an opt-in, read-only adapter for the aggregate wallet portfolio endpoint. Configure `ZerionAPIConfig` with an API key supplied by your own secret manager; do not paste keys into source, fixtures, prompts, or issue reports. The adapter returns an aggregate holding and does not provide transaction history or execution capabilities. See [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+The package includes an opt-in, read-only adapter for the wallet positions and transactions endpoints. Configure `ZerionAPIConfig` with an API key supplied by your own secret manager; do not paste keys into source, fixtures, prompts, or issue reports. The adapter returns per-asset holdings and a mapped transaction ledger; it does not provide execution capabilities. See [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
 
 The adapter depends on the endpoint contract and access permitted by your Zerion account. It is not enabled by the default fixture or MCP configuration.
 
@@ -74,7 +74,7 @@ export ZERION_WALLET_ADDRESS=0xYourWalletAddress
 .venv/bin/zpm-mcp
 ```
 
-When enabled, `get_portfolio_snapshot` returns `source.kind = "zerion_api"` and a single aggregate `PORTFOLIO` holding with no transactions, so `get_pnl` reports a missing acquisition basis rather than inventing one. If the API rejects the key, rate-limits, or fails, the tools return `status: "error"` with a typed `error.kind` and `fallback: "none"`. The fixture is never served in place of a failed API call.
+When enabled, `get_portfolio_snapshot` returns `source.kind = "zerion_api"` with real per-asset holdings and a transaction ledger mapped from Zerion's `trade`, `send`, and `receive` operation types. `get_pnl` computes basis from observed buy transactions per asset; an asset with no observed buy reports a missing acquisition basis rather than an invented one. If the API rejects the key, rate-limits, hits a pagination fault, or fails, the tools return `status: "error"` with a typed `error.kind` and `fallback: "none"`. The fixture is never served in place of a failed API call.
 
 Python callers can do the same without environment variables:
 
