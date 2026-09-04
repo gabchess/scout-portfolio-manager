@@ -531,7 +531,9 @@ class ReadOnlyHost:
 
         Reuses analyze_asset's rsi_14 and distance_from_range_pct rather than
         recomputing them: one RSI/range implementation, one place. Window is
-        always "current"; this never forecasts a future day.
+        always "current"; this never forecasts a future day. Also propagates
+        analyze_asset's freshness so a stale price series is never silently
+        used to produce a favorable/unfavorable classification.
         """
         if risk_profile not in SIZING_FRACTION:
             raise ValueError(f"unknown risk_profile: {risk_profile!r}")
@@ -562,6 +564,8 @@ class ReadOnlyHost:
         }
         if "suggested_amount_usd" in classification:
             result["suggested_amount_usd"] = classification["suggested_amount_usd"]
+        if analysis.get("freshness") is not None:
+            result["freshness"] = analysis["freshness"]
         return result
 
     def set_alert(self, asset: str, kind: str, threshold: float) -> Dict[str, Any]:

@@ -43,6 +43,9 @@ def rsi(closes: Sequence[float], window: int = 14) -> Optional[float]:
         avg_gain = (avg_gain * (window - 1) + gains[i]) / window
         avg_loss = (avg_loss * (window - 1) + losses[i]) / window
     if avg_loss == 0:
+        # Convention: no losses in the window means max RSI (100), which also
+        # covers the flat-price sub-case (avg_gain == 0 too, e.g. a constant
+        # series) rather than raising or dividing by zero.
         return 100.0
     rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))

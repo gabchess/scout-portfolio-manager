@@ -57,6 +57,13 @@ def test_rsi_none_when_insufficient_data():
     assert rsi([1.0, 2.0, 3.0], 14) is None
 
 
+def test_rsi_is_100_for_a_flat_price_series():
+    # avg_gain == 0 and avg_loss == 0 both hold here; the avg_loss == 0
+    # branch must resolve to 100.0 rather than raising or dividing by zero.
+    closes = [100.0] * 20
+    assert rsi(closes, 14) == 100.0
+
+
 def test_range_30d_reports_low_and_high_over_last_30():
     closes = [float(i) for i in range(1, 40)]  # 1..39, ascending
     result = range_30d(closes)
