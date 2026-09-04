@@ -1,6 +1,6 @@
 {
   "name": "scout-portfolio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Read-only portfolio intelligence for fixture data or an explicitly configured Zerion API adapter.",
   "author": {
     "name": "Zerion Portfolio Manager contributors"

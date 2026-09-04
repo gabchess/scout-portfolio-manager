@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.3.0 - 2026-09-04
+
+Adds a technical-analysis and alerts layer on top of the existing read-only tools,
+plus an unattended watch loop that chains them into one report.
+
+### Added
+
+- `analyze_asset`: SMA, EMA, RSI, and drawdown for one held asset, backed by the new
+  synthetic `fixtures/price_history.json`, with a heuristic disclosure attached to every
+  result.
+- `dca_windows`: classifies the current entry window for one asset (favorable, neutral,
+  or unfavorable) with rationale, carrying the line "This is analysis, not financial
+  advice."
+- `set_alert` and `check_alerts`: a user-chosen price-threshold rule is stored locally in
+  `.scout/alerts.json` and evaluated on demand; no background schedule, no push, no
+  network call.
+- The `watch` skill (`skills/watch/SKILL.md`), which chains
+  `get_portfolio_snapshot -> analyze_asset -> dca_windows -> check_alerts` into one
+  on-demand pass and writes a static `scout-report.html`. Sized for a Claude Code
+  `/loop` tick; each run is a fresh process, and only `.scout/alerts.json` persists
+  between runs.
+- `fixtures/price_history.json`, a synthetic OHLC series with the same status as
+  `fixtures/portfolio.json`: bundled test data, never a live feed.
+
+### Changed
+
+- `README.md`, `START-HERE.md`, `docs/ARCHITECTURE.md`, `SECURITY.md`, and
+  `DATA-AND-PRIVACY.md` now document the four new tools and the `watch` skill: the MCP
+  tool list grows from four to eight, `docs/ARCHITECTURE.md`'s pipeline diagram gains the
+  `analyze_asset`/`dca_windows`/`set_alert`/`check_alerts` stages, `SECURITY.md` states
+  the four new tools are read-only and heuristic, not investment advice, and
+  `DATA-AND-PRIVACY.md` documents `fixtures/price_history.json` and
+  `.scout/alerts.json`'s local-only, no-secrets status.
+- `evals/behavioral-evals.md` gains four acceptance rows for `analyze_asset`,
+  `dca_windows`, `set_alert`, and `check_alerts`.
+
 ## 0.2.0 - 2026-09-04
 
 Rename plus augment packaging: the project ships as an installable augment, at the
