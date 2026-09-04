@@ -9,7 +9,6 @@ from zerion_portfolio_manager.zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIConfig,
     ZerionAPIError,
-    ZerionAPINotFoundError,
     ZerionAPIPaginationError,
     ZerionAPIRateLimitError,
     ZerionAPIReader,
@@ -254,9 +253,14 @@ def test_get_transactions_max_pages_exceeded():
         counter["n"] += 1
         return {"data": [], "links": {"next": f"{BASE_URL}/page-{counter['n']}"}}
 
-    with pytest.raises(ZerionAPIPaginationError, match="10-page bound"):
-        make_reader(never_ending_transport).get_transactions(WALLET)
-    assert counter["n"] == ZerionAPIReader.MAX_PAGES
+    reader = make_reader(never_ending_transport, max_pages=3)
+    with pytest.raises(ZerionAPIPaginationError, match="3-page bound"):
+        reader.get_transactions(WALLET)
+    assert counter["n"] == reader.config.max_pages
+
+
+def test_max_pages_defaults_to_20():
+    assert ZerionAPIConfig(**{KEY_FIELD: "test-key"}, base_url=BASE_URL).max_pages == 20
 
 
 # --- get_transactions: operation-type and transfer mapping -------------------
@@ -423,14 +427,14 @@ def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
     assert caught.value.status == status
 
 
-def test_429_ignores_retry_after_header(monkeypatch):
+def test_429_reads_retry_after_seconds(monkeypatch):
     monkeypatch.setattr(
         "zerion_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(429, {"Retry-After": "30"})),
     )
     with pytest.raises(ZerionAPIRateLimitError) as caught:
         make_reader().get_positions(WALLET)
-    assert caught.value.retry_after_seconds is None
+    assert caught.value.retry_after_seconds == pytest.approx(30.0)
 
 
 def test_429_without_retry_after_leaves_it_none(monkeypatch):
@@ -473,7 +477,7 @@ def test_other_4xx_is_generic_typed_error(monkeypatch):
     )
     with pytest.raises(ZerionAPIError) as caught:
         make_reader().get_positions(WALLET)
-    assert not isinstance(caught.value, (ZerionAPIAuthError, ZerionAPINotFoundError))
+    assert not isinstance(caught.value, ZerionAPIAuthError)
     assert caught.value.status == 400
 
 

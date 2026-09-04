@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Replaced the single synthetic `PORTFOLIO` holding with real per-asset holdings from `GET /wallets/{addr}/positions/` and a mapped transaction ledger from `GET /wallets/{addr}/transactions/` (cursor-paginated via `links.next`, bounded by `ZerionAPIReader.MAX_PAGES`). `get_pnl` now computes basis from observed buy transactions per asset.
-- Expanded the Zerion error taxonomy with `ZerionAPIPaginationError` (cap hit or broken cursor) and `ZerionAPINotFoundError` (404); `ZerionAPIServerError` (5xx) now reads `Retry-After` the same way `ZerionAPIRateLimitError` does.
+- Replaced the single synthetic `PORTFOLIO` holding with real per-asset holdings from `GET /wallets/{addr}/positions/` and a mapped transaction ledger from `GET /wallets/{addr}/transactions/` (cursor-paginated via `links.next`, bounded by `ZerionAPIConfig.max_pages`, default 20). `get_pnl` now computes basis from observed buy transactions per asset.
+- Expanded the Zerion error taxonomy with `ZerionAPIPaginationError` (cap hit or broken cursor) and a `not_found` observe-error kind for 404 (status-based, no dedicated exception type); `ZerionAPIServerError` (5xx) reads `Retry-After` the same way `ZerionAPIRateLimitError` does, and every observe-error now carries an orthogonal `retryable` flag alongside its cause `kind`.
 - `Holding`, `Transaction`, and `PnlResult` now reject `Infinity`, `NaN`, and boolean/string values coerced into float fields instead of silently accepting them.
 - `ZerionAPIConfig` validates `base_url` at construction: a non-`https` scheme or an unexpected host raises `ValueError` immediately instead of failing at request time.
 - Each tool descriptor in `ReadOnlyHost.tool_manifest()` now carries a `version` field; see `docs/ARCHITECTURE.md` for the deprecation policy.

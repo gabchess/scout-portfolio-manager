@@ -340,6 +340,13 @@ class ReadOnlyHost:
         }
 
 
+#: Error kinds that a caller may safely retry (rate limit, server, transport).
+#: Cause and retryability are orthogonal: "server" describes what went wrong,
+#: "retryable" describes whether trying again makes sense. Keeping them as
+#: separate fields avoids collapsing a cause taxonomy into an action word.
+_RETRYABLE_KINDS = {"rate_limit", "server", "transport"}
+
+
 def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
     """Typed, credential-free observe failure. No fixture fallback happens here."""
     if isinstance(exc, ZerionAPIAuthError):
@@ -347,24 +354,38 @@ def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
     elif isinstance(exc, ZerionAPIRateLimitError):
         kind = "rate_limit"
     elif isinstance(exc, ZerionAPIServerError):
-        kind = "retry"
+        kind = "server"
     elif isinstance(exc, ZerionAPIPaginationError):
         kind = "pagination"
     elif isinstance(exc, ZerionAPITransportError):
         kind = "transport"
+    elif exc.status == 404:
+        # List endpoints raise a generic ZerionAPIError(status=404), not a
+        # dedicated exception type (list endpoints return empty data, not
+        # 404, per Zerion's docs, so a whole class for it was misleading).
+        # The "not_found" signal is preserved here by a status check instead.
+        kind = "not_found"
     else:
         kind = "api"
+    retryable = kind in _RETRYABLE_KINDS
     _error_kind_counts[kind] += 1
     logger.warning(
-        "zerion_observe_error boundary=observe source=zerion_api error.kind=%s http_status=%s",
+        "zerion_observe_error boundary=observe source=zerion_api error.kind=%s "
+        "retryable=%s http_status=%s",
         kind,
+        retryable,
         exc.status,
     )
     return {
         "status": "error",
         "boundary": "observe",
         "source": "zerion_api",
-        "error": {"kind": kind, "message": str(exc), "http_status": exc.status},
+        "error": {
+            "kind": kind,
+            "retryable": retryable,
+            "message": str(exc),
+            "http_status": exc.status,
+        },
         "fallback": "none",
     }
 
