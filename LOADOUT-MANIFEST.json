@@ -11,7 +11,9 @@
       "parse_dca_request",
       "preview_dca",
       "analyze_asset",
-      "dca_windows"
+      "dca_windows",
+      "set_alert",
+      "check_alerts"
     ],
     "mcp": [
       "get_portfolio_snapshot",
@@ -19,7 +21,9 @@
       "parse_dca_request",
       "preview_dca",
       "analyze_asset",
-      "dca_windows"
+      "dca_windows",
+      "set_alert",
+      "check_alerts"
     ],
     "claude_code_command": "/portfolio-intelligence"
   },
@@ -33,7 +37,8 @@
     "sign": false,
     "submit": false,
     "verify_settlement": false,
-    "technical_analysis": true
+    "technical_analysis": true,
+    "alerts": true
   },
   "component_versions": {
     "product": "0.2.0",

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from . import __version__
+from .alerts import AlertStore, evaluate_alert
 from .analytics import (
     distance_from_range_pct,
     drawdown_from_cost_basis_pct,
@@ -57,7 +58,14 @@ TOOL_NAMES = (
     "preview_dca",
     "analyze_asset",
     "dca_windows",
+    "set_alert",
+    "check_alerts",
 )
+
+#: Default local path for AlertStore, relative to the process's current
+#: working directory when no alerts_path is given. Gitignored: this is
+#: per-operator local state, not a repo artifact.
+DEFAULT_ALERTS_PATH = Path(".scout") / "alerts.json"
 
 #: analyze_asset's freshness gate: how many days old the last observed price
 #: point may be, relative to the snapshot's observed_at date, before the
@@ -109,9 +117,13 @@ class ReadOnlyHost:
         source: Union[str, Path, PortfolioReader],
         *,
         price_history_path: Optional[Union[str, Path]] = None,
+        alerts_path: Optional[Union[str, Path]] = None,
     ):
         self.reader: PortfolioReader = (
             FixturePortfolioReader(source) if isinstance(source, (str, Path)) else source
+        )
+        self._alert_store = AlertStore(
+            alerts_path if alerts_path is not None else DEFAULT_ALERTS_PATH
         )
         # Price history is always fixture-backed, independent of the portfolio
         # source: no live price-history endpoint exists yet (see spec's
@@ -288,6 +300,50 @@ class ReadOnlyHost:
                     "additionalProperties": False,
                 },
             },
+            {
+                "name": "set_alert",
+                "version": __version__,
+                "description": (
+                    "Store a user-defined alert rule locally for later on-demand evaluation "
+                    "by check_alerts. No daemon, no cron, no push: nothing fires by itself."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "asset": {"type": "string", "description": "Asset symbol, e.g. ETH"},
+                        "kind": {
+                            "type": "string",
+                            "enum": ["price_pct_below_cost_basis", "rsi_below"],
+                            "description": "Which observed value the rule watches.",
+                        },
+                        "threshold": {
+                            "type": "number",
+                            "description": "Threshold value the rule fires below.",
+                        },
+                    },
+                    "required": ["asset", "kind", "threshold"],
+                    "additionalProperties": False,
+                },
+            },
+            {
+                "name": "check_alerts",
+                "version": __version__,
+                "description": (
+                    "Evaluate stored alert rules on demand, once per call. Never runs in the "
+                    "background. Stale price data is flagged, never used silently to decide a "
+                    "fire/no-fire outcome."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "asset": {
+                            "type": "string",
+                            "description": "Optional asset filter, e.g. ETH",
+                        }
+                    },
+                    "additionalProperties": False,
+                },
+            },
         ]
 
     def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -327,6 +383,19 @@ class ReadOnlyHost:
                 risk_profile=arguments.get("risk_profile", "balanced"),
                 amount_usd=arguments.get("amount_usd"),
             )
+        if name == "set_alert":
+            asset = arguments.get("asset")
+            kind = arguments.get("kind")
+            threshold = arguments.get("threshold")
+            if not isinstance(asset, str) or not asset.strip():
+                raise ValueError("set_alert requires non-empty asset")
+            if not isinstance(kind, str) or not kind.strip():
+                raise ValueError("set_alert requires non-empty kind")
+            if not isinstance(threshold, (int, float)):
+                raise ValueError("set_alert requires a numeric threshold")
+            return self.set_alert(asset, kind, float(threshold))
+        if name == "check_alerts":
+            return self.check_alerts(asset=arguments.get("asset"))
         if name in {"execute", "execute_dca", "submit", "sign"}:
             raise PermissionError(
                 f"{name} is not available on the read-only host; "
@@ -494,6 +563,58 @@ class ReadOnlyHost:
         if "suggested_amount_usd" in classification:
             result["suggested_amount_usd"] = classification["suggested_amount_usd"]
         return result
+
+    def set_alert(self, asset: str, kind: str, threshold: float) -> Dict[str, Any]:
+        """Store a user-defined alert rule locally. No daemon, no cron, no push."""
+        rule = self._alert_store.add(asset=asset, kind=kind, threshold=threshold)
+        return {
+            "status": "ok",
+            "boundary": "propose",
+            "rule": rule.model_dump(mode="json"),
+            "rule_count": len(self._alert_store.list()),
+        }
+
+    def check_alerts(self, asset: Optional[str] = None) -> Dict[str, Any]:
+        """Evaluate stored alert rules on demand. Never runs in the background.
+
+        Calls analyze_asset (and get_pnl, for price_pct_below_cost_basis rules)
+        once per distinct asset among the matched rules, not once per rule, to
+        avoid redundant recomputation. An asset with no observed price history
+        or basis lands in "unknown", never silently dropped.
+        """
+        target = asset.upper() if asset else None
+        rules = self._alert_store.list(asset=target)
+        fired: List[Dict[str, Any]] = []
+        not_fired: List[Dict[str, Any]] = []
+        unknown: List[str] = []
+
+        distinct_assets = sorted({rule.asset for rule in rules})
+        analyses: Dict[str, Dict[str, Any]] = {}
+        pnls: Dict[str, Dict[str, Any]] = {}
+        for a in distinct_assets:
+            analyses[a] = self.analyze_asset(a)
+            if any(r.asset == a and r.kind == "price_pct_below_cost_basis" for r in rules):
+                pnls[a] = self.get_pnl(asset=a)
+
+        for rule in rules:
+            analysis = analyses[rule.asset]
+            if analysis["status"] != "ok":
+                unknown.append(f"could not observe {rule.asset} for rule {rule.id}")
+                continue
+            evaluated = evaluate_alert(rule, analysis=analysis, pnl=pnls.get(rule.asset))
+            if evaluated["observed_value"] is None:
+                unknown.append(f"no observed value for rule {rule.id} on {rule.asset}")
+                continue
+            (fired if evaluated["fired"] else not_fired).append(evaluated)
+
+        return {
+            "status": "ok",
+            "boundary": "calculate",
+            "fired": fired,
+            "not_fired": not_fired,
+            "unknown": unknown,
+            "not_financial_advice": NOT_FINANCIAL_ADVICE,
+        }
 
     def parse_dca_request(self, text: str) -> Dict[str, Any]:
         parsed = parse_dca_request(text)

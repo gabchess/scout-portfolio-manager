@@ -112,6 +112,16 @@ def create_server(host: ReadOnlyHost | None = None):
             default=str,
         )
 
+    @server.tool(name="set_alert")
+    def set_alert(asset: str, kind: str, threshold: float) -> str:
+        """Store a user-defined alert rule locally. No daemon, no cron, no push."""
+        return json.dumps(host.set_alert(asset, kind, threshold), indent=2, default=str)
+
+    @server.tool(name="check_alerts")
+    def check_alerts(asset: str | None = None) -> str:
+        """Evaluate stored alert rules on demand. Never runs in the background."""
+        return json.dumps(host.check_alerts(asset=asset), indent=2, default=str)
+
     return server
 
 

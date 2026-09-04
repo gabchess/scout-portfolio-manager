@@ -14,6 +14,8 @@ EXPECTED_TOOLS = (
     "preview_dca",
     "analyze_asset",
     "dca_windows",
+    "set_alert",
+    "check_alerts",
 )
 
 
