@@ -6,6 +6,26 @@ const $ = (sel) => document.querySelector(sel);
 const usd = (n) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
+// Matches the deck's month abbreviations exactly ("Sept", not Intl's "Sep").
+const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sept",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const fmtDate = (iso) => {
+  const d = new Date(iso);
+  return `${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+};
+
 const esc = (s) =>
   String(s).replace(
     /[&<>"']/g,
@@ -100,7 +120,7 @@ function renderSnapshot(data) {
 
 /* ---------- PnL (calculate) ---------- */
 
-function renderPnl(data) {
+function renderPnl(data, snapshot) {
   const el = $("#pnl-body");
   if (data.status !== "ok") {
     el.innerHTML = `<p class="placeholder">PnL unavailable: ${esc(
@@ -110,9 +130,24 @@ function renderPnl(data) {
   }
   const cls = (n) => (n >= 0 ? "pos" : "neg");
   const sign = (n) => (n >= 0 ? "+" : "");
+  const snap = snapshot?.status === "ok" ? snapshot.snapshot : null;
   const blocks = data.results
-    .map(
-      (r) => `
+    .map((r) => {
+      const buys = (snap?.transactions || []).filter(
+        (t) => t.asset === r.asset && t.kind === "buy",
+      );
+      const basisLine = buys.length
+        ? `<div class="formula">Cost basis: bought ${esc(r.asset)} for ${usd(
+            buys.reduce((acc, t) => acc + t.value_usd, 0),
+          )} on ${fmtDate(buys[0].occurred_at)}.</div>`
+        : "";
+      const holding = (snap?.holdings || []).find((h) => h.asset === r.asset);
+      const valueLine = holding
+        ? `<div class="formula">Current value: ${esc(r.asset)} is ${usd(
+            holding.value_usd,
+          )} in this snapshot (${fmtDate(r.valuation_at)}).</div>`
+        : "";
+      return `
       <div class="pnl-asset">
         <span class="sym">${esc(r.asset)}</span>
         <span class="conf conf-${esc(r.confidence)}">confidence: ${esc(r.confidence)}</span>
@@ -127,11 +162,12 @@ function renderPnl(data) {
         <div class="stat"><div class="k">Return</div>
           <div class="v ${cls(r.return_pct)}">${sign(r.return_pct)}${r.return_pct}%</div></div>
       </div>
+      ${basisLine}${valueLine}
       <div class="formula"><b>How this was computed:</b> ${esc(r.formula)}
         &nbsp;·&nbsp; basis from observed buy transactions, never inferred
         &nbsp;·&nbsp; valued at ${esc(r.valuation_at)}</div>
-      ${r.warnings.length ? `<div class="callout callout-question">${esc(r.warnings.join("; "))}</div>` : ""}`,
-    )
+      ${r.warnings.length ? `<div class="callout callout-question">${esc(r.warnings.join("; "))}</div>` : ""}`;
+    })
     .join(
       "<hr style='border:none;border-top:1px solid var(--border);margin:14px 0'/>",
     );
@@ -241,5 +277,9 @@ document.querySelectorAll(".chip").forEach((chip) => {
   });
 });
 
-getJSON("/api/snapshot").then(renderSnapshot);
-getJSON("/api/pnl").then(renderPnl);
+Promise.all([getJSON("/api/snapshot"), getJSON("/api/pnl")]).then(
+  ([snapshot, pnl]) => {
+    renderSnapshot(snapshot);
+    renderPnl(pnl, snapshot);
+  },
+);
