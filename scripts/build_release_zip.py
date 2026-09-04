@@ -3,9 +3,7 @@
 Packages the pieces an installer actually needs: the `.claude-plugin` manifest
 (if present), the Python package source under `src/`, the top-level docs and
 manifest files, and `demo/`. Deliberately leaves out anything that isn't part
-of the shipped artifact: `.git`, caches, `.venv`, `.remember`, `tracking/`, and
-the whole `video/` tree (Remotion project and renders don't belong in the
-installable package).
+of the shipped artifact: `.git`, caches, `.venv`, `.remember`, and `tracking/`.
 
 Determinism: files are added in sorted path order with a fixed `date_time`
 (1980-01-01, the earliest zip timestamp allowed) and fixed permission bits, so
@@ -46,7 +44,6 @@ EXCLUDED_DIR_NAMES = {
     ".venv",
     ".remember",
     "tracking",
-    "video",
 }
 LICENSE_CANDIDATES = ("LICENSE", "LICENSE.md", "LICENSE.txt")
 TOP_LEVEL_FILES = ("START-HERE.md", "README.md", "RELEASE-MANIFEST.json", "pyproject.toml")

@@ -36,12 +36,12 @@ Version moves 0.2.0 -> 0.3.0.
    "can't touch your money"-style framing, add the pinned roadmap sentence,
    keep every boundary fact (approval required, no execute tool) as a fact.
 6. Version bump to 0.3.0, CHANGELOG entry, release artifacts (dist zip,
-   SHA256SUMS.txt) rebuilt via the repo's existing scripts before Kestrel
+   SHA256SUMS.txt) rebuilt via the repo's existing scripts before the pre-ship review
    sees it.
 
 ## Explicit non-goals
 
-- **No live Zerion price-history endpoint.** Apiana's ruling stands: only
+- **No live Zerion price-history endpoint.** The product owner's ruling stands: only
   `positions` and `transactions` are confirmed live. Live price history is a
   documented follow-up ticket (see Roadmap below), not built this loop.
 - **No forecasting of future days.** `dca_windows` classifies the *current*
@@ -59,9 +59,9 @@ Version moves 0.2.0 -> 0.3.0.
 - **No change to `skills/portfolio-intelligence/`.** The new tools live in
   `watch`'s scope and in the four original tools' own doc surfaces; the
   original skill's SKILL.md is not required to learn about them this loop.
-- **video/ is untouched.** Out of scope per repo convention; the "can't
-  touch your money" line that exists in `video/src/audio/README.md` is not
-  part of this ticket set.
+- **The launch video source is untouched.** Out of scope per repo
+  convention at the time of this ticket set. (It has since been removed
+  from the repo entirely; the video ships on socials instead.)
 
 ## Non-obvious decisions
 
@@ -103,7 +103,7 @@ Version moves 0.2.0 -> 0.3.0.
   `technical_analysis` join the existing observe/calculate/propose/... keys
   rather than overloading one of them, since neither TA nor alerting maps
   cleanly onto the existing boundary vocabulary.
-- **Two pinned, verbatim strings**, so Harrier and Kestrel can grep for them
+- **Two pinned, verbatim strings**, so the security and release review passes can grep for them
   instead of re-reading prose each time:
   - Not-financial-advice line (mandatory on `dca_windows` and
     `check_alerts` output, and anywhere docs describe Scout recommending an
@@ -118,7 +118,7 @@ Version moves 0.2.0 -> 0.3.0.
 ## Roadmap (named, not built)
 
 - Live Zerion price-history endpoint, replacing the synthetic fixture, once
-  Zerion ships or confirms one (Apiana owns re-checking this).
+  Zerion ships or confirms one (the product owner owns re-checking this).
 - Actual DCA execution and standing alert daemon/push, the two directions
   the roadmap sentence names. Both stay `approval_state=required`-gated
   even once built; this spec does not pre-authorize either.
@@ -135,7 +135,7 @@ Version moves 0.2.0 -> 0.3.0.
 - `python scripts/check_plugin_manifest.py` exits 0.
 - `python scripts/security_scan.py` (via `test_quality_gates.py`) stays clean.
 - `python scripts/write_checksums.py --check` exits 0 at the final commit
-  handed to Kestrel.
+  handed off for release review.
 - `grep -r "This is analysis, not financial advice." src/ skills/watch/ README.md START-HERE.md`
   finds it on every entry-recommending surface.
 - No tool name in `ReadOnlyHost.TOOL_NAMES`, `tool_manifest()`, or the MCP

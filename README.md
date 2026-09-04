@@ -4,7 +4,7 @@ Your agent should know what you own.
 
 A read-only agent for one wallet. It watches, calculates, and proposes a DCA plan. You approve. It never signs, sends, or trades.
 
-Built as a cat mascot: it won't press a button it doesn't want to.
+Built as a corgi mascot: it herds the mess into one view.
 
 ## The problem
 
@@ -88,16 +88,6 @@ Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `pre
 `analyze_asset` reports SMA/EMA/RSI/drawdown for one held asset, with a heuristic disclosure attached. `dca_windows` classifies the current entry window for one asset and carries the line "This is analysis, not financial advice." `set_alert` stores a user-chosen price-threshold rule locally; `check_alerts` evaluates stored rules on demand and carries the same "This is analysis, not financial advice." line. None of the four executes, schedules itself, or runs in the background.
 
 Run the full observe-through-alert chain unattended with [`skills/watch/SKILL.md`](skills/watch/SKILL.md), which fits a Claude Code `/loop` tick.
-
-## Video
-
-The video's source lives in `video/`, built with Remotion. Render it from inside that folder:
-
-```bash
-cd video && npx remotion render
-```
-
-Output lands in `video/out/`.
 
 ## More
 

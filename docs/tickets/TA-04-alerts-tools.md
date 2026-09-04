@@ -119,4 +119,4 @@ silently dropped.
 If `check_alerts` needs to run against a live, shared alert store across
 multiple concurrent MCP clients (not just one `/loop` process), that is a
 concurrency/locking design question outside this ticket's scope: escalate
-to Forge for a design call rather than adding ad hoc file locking here.
+to the engineering owner for a design call rather than adding ad hoc file locking here.

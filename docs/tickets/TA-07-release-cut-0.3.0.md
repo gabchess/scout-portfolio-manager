@@ -8,7 +8,7 @@ later ticket invalidates the checksums and zip this one produces.
 
 Bump to 0.3.0, write the CHANGELOG entry, regenerate the Codex host mirror,
 refresh `SHA256SUMS.txt`, and rebuild the release zip, so the tree handed
-to Kestrel is internally consistent and self-verifying.
+to release review is internally consistent and self-verifying.
 
 ## Files this ticket may touch
 
@@ -75,7 +75,7 @@ read-only tools; it does not change what the package is authorized to do.
   `.scout/alerts.json` or `scout-report.html` committed (both must be
   gitignored per TA-04 and TA-05).
 - `dist/scout-portfolio-0.3.0.zip` exists locally (it is gitignored, not
-  committed; Kestrel's review happens against the commit, the zip is a
+  committed; Release review happens against the commit, the zip is a
   local build artifact proving the build step works).
 
 ## Escalation trigger

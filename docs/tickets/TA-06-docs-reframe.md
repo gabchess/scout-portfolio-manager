@@ -21,7 +21,8 @@ Document running `watch` under `/loop`.
 - `DATA-AND-PRIVACY.md`
 - `evals/behavioral-evals.md` (new rows for the four new tools)
 
-Not in scope: `video/` (explicitly out of scope per the brief),
+Not in scope: the launch video source (explicitly out of scope per the
+brief, and since removed from the repo entirely),
 `skills/portfolio-intelligence/` (non-goal, see spec).
 
 ## Interface / contract
@@ -98,7 +99,8 @@ docs-prose ticket, not a marker-removal ticket.
 ## Escalation trigger
 
 If the "can't touch your money" framing turns out to live only in
-`video/` (it does, per prior grep of this tree) and nowhere in the five
+the (since-removed) launch video source (it did, per prior grep of this
+tree) and nowhere in the five
 named docs, do not invent a phrase to delete just to satisfy the letter of
 the brief. State that finding plainly in the PR description and move on to
 adding the roadmap sentence, which is the actionable part of this ticket

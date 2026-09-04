@@ -92,7 +92,7 @@ number), and `call_tool` dispatch. Add the matching `@server.tool` wrapper.
 `window: "current"` only, never a forecasted day or date. No new
 execute-shaped tool name. The two pinned strings
 (`not_financial_advice`, `disclosure`) must be byte-identical to the spec's
-verbatim text, since Harrier and Kestrel grep for them literally.
+verbatim text, since the release review greps for them literally.
 
 ## Acceptance check
 

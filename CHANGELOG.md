@@ -65,7 +65,7 @@ augment-builder reference bar, for the first time this release.
 - Each tool listed in `ReadOnlyHost.tool_manifest()` now reports a `version` field. See `docs/ARCHITECTURE.md` for the deprecation policy this enables.
 - Every completed DCA preview now carries a `preview_id`, a host-minted id for future audit or idempotency use. It is not an authorization token: the preview still requires `approval_state=required`, and no execute step exists in this package.
 - Added a structured log line and an in-process counter, keyed by error kind, for every typed observe-boundary error.
-- Scout demo video source under `video/` (Remotion, TypeScript), the checked-in fixture and Remotion project used to render the Scout walkthrough.
+- Removed: the launch video source; the video ships on socials.
 
 ### Changed
 
