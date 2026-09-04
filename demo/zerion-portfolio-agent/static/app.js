@@ -41,6 +41,9 @@ const esc = (s) =>
 
 async function getJSON(path) {
   const res = await fetch(path);
+  if (!res.ok) {
+    throw new Error(`${path} responded ${res.status}`);
+  }
   return res.json();
 }
 
@@ -277,9 +280,26 @@ document.querySelectorAll(".chip").forEach((chip) => {
   });
 });
 
-Promise.all([getJSON("/api/snapshot"), getJSON("/api/pnl")]).then(
-  ([snapshot, pnl]) => {
-    renderSnapshot(snapshot);
-    renderPnl(pnl, snapshot);
+Promise.allSettled([getJSON("/api/snapshot"), getJSON("/api/pnl")]).then(
+  ([snapshotResult, pnlResult]) => {
+    const snapshot =
+      snapshotResult.status === "fulfilled" ? snapshotResult.value : null;
+
+    if (snapshotResult.status === "fulfilled") {
+      renderSnapshot(snapshot);
+    } else {
+      $("#snapshot-body").innerHTML =
+        `<p class="placeholder">Snapshot unavailable: ${esc(
+          snapshotResult.reason?.message || String(snapshotResult.reason),
+        )}</p>`;
+    }
+
+    if (pnlResult.status === "fulfilled") {
+      renderPnl(pnlResult.value, snapshot);
+    } else {
+      $("#pnl-body").innerHTML = `<p class="placeholder">PnL unavailable: ${esc(
+        pnlResult.reason?.message || String(pnlResult.reason),
+      )}</p>`;
+    }
   },
 );
