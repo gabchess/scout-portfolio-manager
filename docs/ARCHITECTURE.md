@@ -20,7 +20,9 @@ The package contains a fake execution adapter for isolated domain/test behavior;
 
 `ZerionAPIReader` reads two endpoints with different pagination shapes, per Zerion's own
 documentation. `GET /wallets/{addr}/positions/` takes no pagination parameters and returns
-every position in one call. `GET /wallets/{addr}/transactions/` paginates: the reader
+every position in one call. The reader sends `filter[positions]=only_simple` on that call;
+this makes explicit a filter value Zerion's API already defaults to, and is documentation of
+existing server behavior, not a behavior change. `GET /wallets/{addr}/transactions/` paginates: the reader
 requests `page[size]=100` and follows `links.next` until the API stops returning a next
 cursor, bounded by `ZerionAPIConfig.max_pages` (default 20). Hitting the page cap while a
 next cursor is still present, or receiving a malformed or repeated cursor, raises
