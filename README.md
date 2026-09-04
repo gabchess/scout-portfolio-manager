@@ -1,6 +1,8 @@
 # Scout
 
-A read-only agent for one wallet. It watches, calculates, and proposes DCA plans. You approve.
+A read-only agent for one wallet. It watches, calculates, and proposes a DCA plan. You approve. It never signs, sends, or trades.
+
+Built as a cat mascot: it won't press a button it doesn't want to.
 
 Scout is a Python package and Claude Code plugin built on the Zerion API. The default source is the synthetic fixture at `fixtures/portfolio.json`; an optional `ZerionAPIReader` can read one real wallet's holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
 

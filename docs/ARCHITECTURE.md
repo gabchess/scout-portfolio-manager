@@ -1,6 +1,6 @@
 # Architecture
 
-A read-only agent for one wallet. It watches, calculates, and proposes DCA plans. You approve. This document describes how that boundary holds, from observation through the point where a proposal stops and waits on you.
+A read-only agent for one wallet. It watches, calculates, and proposes a DCA plan. You approve. It never signs, sends, or trades. This document describes how that boundary holds, from observation through the point where a proposal stops and waits on you.
 
 ```text
 agent runtime / MCP client
