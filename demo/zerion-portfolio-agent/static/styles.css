@@ -319,6 +319,13 @@ tr:last-child td { border-bottom: none; }
   font-weight: 700;
   color: var(--zr-pink);
 }
+/* Same weight/size as the page footer's disclosure line (.safety-strip p):
+   deliberately quiet so it never competes with .approval-line above it. */
+.proposal-disclosure {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
 
 .intent-grid {
   display: grid;

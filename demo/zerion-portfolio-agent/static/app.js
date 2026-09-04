@@ -230,6 +230,7 @@ function renderDca(text, parseRes, previewRes) {
     <p class="user-line">&ldquo;${esc(text)}&rdquo;</p>
     ${plainChips(previewRes.intent)}
     <p class="approval-line">Approval required.</p>
+    <p class="proposal-disclosure">Analysis, not financial advice.</p>
     ${details(
       "Details",
       `<div class="intent-grid">
