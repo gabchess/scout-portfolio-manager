@@ -10,14 +10,16 @@
       "get_pnl",
       "parse_dca_request",
       "preview_dca",
-      "analyze_asset"
+      "analyze_asset",
+      "dca_windows"
     ],
     "mcp": [
       "get_portfolio_snapshot",
       "get_pnl",
       "parse_dca_request",
       "preview_dca",
-      "analyze_asset"
+      "analyze_asset",
+      "dca_windows"
     ],
     "claude_code_command": "/portfolio-intelligence"
   },

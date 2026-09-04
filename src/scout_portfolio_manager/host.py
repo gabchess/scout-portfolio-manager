@@ -24,6 +24,7 @@ from .analytics import (
 )
 from .contracts import Transaction
 from .dca import DcaIntent, parse_dca_request
+from .dca_windows import SIZING_FRACTION, classify_window
 from .pnl import PnlResult, calculate_pnl
 from .portfolio import FixturePortfolioReader, PortfolioReader
 from .price_history import FixturePriceHistoryReader, PriceHistoryReader
@@ -55,6 +56,7 @@ TOOL_NAMES = (
     "parse_dca_request",
     "preview_dca",
     "analyze_asset",
+    "dca_windows",
 )
 
 #: analyze_asset's freshness gate: how many days old the last observed price
@@ -68,6 +70,9 @@ DEFAULT_MAX_PRICE_AGE_DAYS = 2
 #: docs/spec-scout-ta-and-watch-0.3.0.md's non-obvious decisions).
 TA_CONFIDENCE = "low"
 TA_DISCLOSURE = "Heuristic indicators, not backtested; treat as descriptive, not predictive."
+
+#: Pinned verbatim, grepped by Harrier and Kestrel: never reword.
+NOT_FINANCIAL_ADVICE = "This is analysis, not financial advice."
 
 # Deterministic fixture quote assumptions used only when the caller omits quote fields.
 # Labeled as assumed so hosts never confuse them with observed market data.
@@ -252,6 +257,37 @@ class ReadOnlyHost:
                     "additionalProperties": False,
                 },
             },
+            {
+                "name": "dca_windows",
+                "version": __version__,
+                "description": (
+                    "Classify the current window as favorable, neutral, or unfavorable for a "
+                    "DCA buy, sized by a risk-profile fraction. Reuses analyze_asset's RSI and "
+                    "range-distance; never forecasts a future day. Not financial advice."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "asset": {
+                            "type": "string",
+                            "description": "Asset symbol to classify a DCA window for, e.g. ETH",
+                        },
+                        "risk_profile": {
+                            "type": "string",
+                            "enum": list(SIZING_FRACTION),
+                            "description": "Sizing-fraction bucket. Defaults to 'balanced'.",
+                        },
+                        "amount_usd": {
+                            "type": "number",
+                            "description": (
+                                "Optional DCA amount to size by the risk-profile fraction."
+                            ),
+                        },
+                    },
+                    "required": ["asset"],
+                    "additionalProperties": False,
+                },
+            },
         ]
 
     def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -282,6 +318,15 @@ class ReadOnlyHost:
             if not isinstance(asset, str) or not asset.strip():
                 raise ValueError("analyze_asset requires non-empty asset")
             return self.analyze_asset(asset)
+        if name == "dca_windows":
+            asset = arguments.get("asset")
+            if not isinstance(asset, str) or not asset.strip():
+                raise ValueError("dca_windows requires non-empty asset")
+            return self.dca_windows(
+                asset,
+                risk_profile=arguments.get("risk_profile", "balanced"),
+                amount_usd=arguments.get("amount_usd"),
+            )
         if name in {"execute", "execute_dca", "submit", "sign"}:
             raise PermissionError(
                 f"{name} is not available on the read-only host; "
@@ -405,6 +450,49 @@ class ReadOnlyHost:
         }
         if freshness is not None:
             result["freshness"] = freshness
+        return result
+
+    def dca_windows(
+        self,
+        asset: str,
+        risk_profile: str = "balanced",
+        amount_usd: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Classify the current window for a DCA buy. Proposes, never executes.
+
+        Reuses analyze_asset's rsi_14 and distance_from_range_pct rather than
+        recomputing them: one RSI/range implementation, one place. Window is
+        always "current"; this never forecasts a future day.
+        """
+        if risk_profile not in SIZING_FRACTION:
+            raise ValueError(f"unknown risk_profile: {risk_profile!r}")
+        analysis = self.analyze_asset(asset)
+        if analysis["status"] != "ok":
+            return analysis
+
+        indicators = analysis["indicators"]
+        classification = classify_window(
+            rsi_14=indicators.get("rsi_14"),
+            distance_from_range_pct=indicators.get("distance_from_range_pct"),
+            risk_profile=risk_profile,  # type: ignore[arg-type]
+            amount_usd=amount_usd,
+        )
+        result: Dict[str, Any] = {
+            "status": "ok",
+            "boundary": "propose",
+            "asset": analysis["asset"],
+            "window": "current",
+            "label": classification["label"],
+            "risk_profile": classification["risk_profile"],
+            "sizing_fraction": classification["sizing_fraction"],
+            "rationale": classification["rationale"],
+            "sensitivity_note": classification["sensitivity_note"],
+            "confidence": TA_CONFIDENCE,
+            "disclosure": TA_DISCLOSURE,
+            "not_financial_advice": NOT_FINANCIAL_ADVICE,
+        }
+        if "suggested_amount_usd" in classification:
+            result["suggested_amount_usd"] = classification["suggested_amount_usd"]
         return result
 
     def parse_dca_request(self, text: str) -> Dict[str, Any]:

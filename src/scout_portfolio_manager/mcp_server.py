@@ -99,6 +99,19 @@ def create_server(host: ReadOnlyHost | None = None):
         """Heuristic SMA/EMA/RSI/range/drawdown indicators for one asset. Read-only."""
         return json.dumps(host.analyze_asset(asset), indent=2, default=str)
 
+    @server.tool(name="dca_windows")
+    def dca_windows(
+        asset: str,
+        risk_profile: str = "balanced",
+        amount_usd: float | None = None,
+    ) -> str:
+        """Classify the current window for a DCA buy. Proposes only; not financial advice."""
+        return json.dumps(
+            host.dca_windows(asset, risk_profile=risk_profile, amount_usd=amount_usd),
+            indent=2,
+            default=str,
+        )
+
     return server
 
 

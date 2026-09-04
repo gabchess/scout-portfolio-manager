@@ -13,6 +13,7 @@ EXPECTED_TOOLS = (
     "parse_dca_request",
     "preview_dca",
     "analyze_asset",
+    "dca_windows",
 )
 
 
