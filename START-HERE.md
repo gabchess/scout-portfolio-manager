@@ -2,6 +2,8 @@
 
 Scout is a read-only portfolio intelligence package: fixture-backed by default, with an optional read-only Zerion API adapter. This file is the exact install route for the harness you are on. Pick one.
 
+Current version: `0.2.0`, an early release. See [`RELEASE-MANIFEST.json`](RELEASE-MANIFEST.json) for what it proves and does not prove.
+
 ## What installing this package does and does not authorize
 
 Installing Scout, by any route below, authorizes only local package installation: copying files, registering a plugin or skill with the host, and running the fixture-backed Python code.
@@ -31,8 +33,8 @@ claude plugin install scout-portfolio@scout-portfolio-manager
 Then try:
 
 ```text
-/portfolio-intelligence What is my PnL?
-/portfolio-intelligence Preview a DCA request for $300 of ETH every week
+/scout-portfolio:portfolio-intelligence What is my PnL?
+/scout-portfolio:portfolio-intelligence Preview a DCA request for $300 of ETH every week
 ```
 
 Claude Code launches the bundled MCP server itself, through `.mcp.json`, which runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp`. This needs `uv` on the launching shell's PATH; no separate `pip install` or PATH setup for the package itself is required for this route.
@@ -94,8 +96,39 @@ uv run --project . demo/zerion-portfolio-agent/server.py
 
 Then open `http://127.0.0.1:8787`. The demo runs entirely offline on the fixture; it never reads `ZERION_API_KEY`. See [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md).
 
+## Enable the Zerion API adapter (any route)
+
+By default Scout reads the local fixture. To read one real wallet instead, set both environment variables below before starting the host, `zpm-mcp`, or the plugin. Setting only one is a configuration error; the process exits and names the missing variable without ever echoing the key.
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `ZERION_API_KEY` | yes | Read-only Zerion API key from your own secret manager. |
+| `ZERION_WALLET_ADDRESS` | yes | The one wallet address to observe. |
+| `ZERION_CHAIN` | no | Label stored on the snapshot; defaults to `multi-chain`. |
+| `ZPM_FIXTURE_PATH` | no | Local fixture used only when the Zerion source is not enabled. |
+
+```bash
+export ZERION_API_KEY=$(cat ~/secrets/zerion-api-key)   # never paste the value inline
+export ZERION_WALLET_ADDRESS=0xYourWalletAddress
+uv run --extra mcp zpm-mcp
+```
+
+Once enabled, `get_pnl` computes cost basis from each asset's observed buy transactions; an asset with no observed buy reports a missing basis rather than an invented one. If the Zerion API rejects the key, rate-limits, or fails outright, the tools return a typed error. The fixture never fills in for a failed API call.
+
+Python callers can set the same thing directly, without environment variables:
+
+```python
+from scout_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager.zerion_api import ZerionAPIConfig, ZerionAPIReader, ZerionWalletReader
+
+reader = ZerionWalletReader(ZerionAPIReader(ZerionAPIConfig(api_key=key_from_secret_manager)), wallet)
+host = ReadOnlyHost(reader)
+```
+
+Full data-handling detail: [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md).
+
 ## Boundaries
 
-`observe != calculate != propose != approve != execute != verify`. DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is `approval_state=required` and `execution_available=false`; wallet handoff and execution are a future product direction, not a current capability.
+`observe != calculate != propose != approve != execute != verify`. DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is `approval_state=required` and `execution_available=false`; wallet handoff and execution are a future product direction, not a current capability. See [`docs/SHOW-ME.md`](docs/SHOW-ME.md) for the full request-and-preview flow.
 
 Never add API keys, private keys, seed phrases, or wallet secrets to this repository, prompts, fixtures, or logs. For the full data and security boundary, read [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md). If installation or discovery fails, continue with [`SUPPORT.md`](SUPPORT.md).
