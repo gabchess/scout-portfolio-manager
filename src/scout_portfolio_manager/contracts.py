@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -58,3 +58,18 @@ class BasisInput(BaseModel):
     amount_usd: float = Field(gt=0)
     source: Literal["observed_transactions", "user_input"]
     as_of: Optional[datetime] = None
+
+
+class PricePoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    date: date  # calendar date, not datetime: daily-close data
+    close_usd: float = Field(ge=0, strict=True)
+
+
+class AssetPriceHistory(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    asset: str = Field(min_length=1)
+    source: SourceMetadata
+    points: list[PricePoint]
