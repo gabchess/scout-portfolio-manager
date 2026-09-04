@@ -23,3 +23,5 @@ proposal != submission != confirmation != verification
 ```
 
 The host and MCP server do not connect to a wallet, sign, submit, or execute. The optional API adapter only observes an aggregate portfolio.
+
+Execution boundary: not implemented in this host. A DCA request ends at a complete, approval-required preview. Wallet handoff and execution are a future product direction, not a current capability.

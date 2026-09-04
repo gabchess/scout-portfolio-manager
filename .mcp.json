@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "zerion-portfolio": {
+    "scout-portfolio": {
       "command": "uv",
       "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT:-.}", "--extra", "mcp", "zpm-mcp"],
       "env": {

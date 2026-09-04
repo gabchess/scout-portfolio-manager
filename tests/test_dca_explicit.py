@@ -1,4 +1,4 @@
-from zerion_portfolio_manager.dca import parse_dca_request
+from scout_portfolio_manager.dca import parse_dca_request
 
 
 def test_dca_parser_extracts_explicit_execution_fields():

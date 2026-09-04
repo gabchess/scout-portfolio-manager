@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from zerion_portfolio_manager.dca import DcaIntent
-from zerion_portfolio_manager.safety import build_preview
+from scout_portfolio_manager.dca import DcaIntent
+from scout_portfolio_manager.safety import build_preview
 
 
 def test_preview_contains_all_material_transaction_fields_and_requires_approval():

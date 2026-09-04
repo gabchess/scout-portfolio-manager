@@ -48,7 +48,7 @@ quoting a past event from an external source, and label that source clearly.
 If MCP is unavailable, install the package with `pip install -e .` and use:
 
 ```python
-from zerion_portfolio_manager.host import default_host
+from scout_portfolio_manager.host import default_host
 
 host = default_host()
 print(host.get_portfolio_snapshot())

@@ -1,4 +1,4 @@
-from zerion_portfolio_manager.ledger import TransactionLedger
+from scout_portfolio_manager.ledger import TransactionLedger
 
 
 def test_ledger_exposes_observed_transactions_and_user_basis_without_secrets():

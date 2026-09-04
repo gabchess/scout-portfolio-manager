@@ -17,8 +17,8 @@ The package install provides the `zpm-mcp` command. `.mcp.json` launches it with
 In Claude Code, add the repository as a local marketplace, then install the listed plugin:
 
 ```text
-/plugin marketplace add /path/to/portfolio-manager
-/plugin install portfolio-intel@portfolio-manager
+/plugin marketplace add /path/to/scout-portfolio-manager
+/plugin install scout-portfolio@scout-portfolio-manager
 ```
 
 The exact CLI spelling can vary by Claude Code release. The marketplace file is kept beside

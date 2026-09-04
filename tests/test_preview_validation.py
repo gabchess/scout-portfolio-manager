@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from zerion_portfolio_manager.dca import DcaIntent
-from zerion_portfolio_manager.safety import build_preview
+from scout_portfolio_manager.dca import DcaIntent
+from scout_portfolio_manager.safety import build_preview
 
 INTENT = DcaIntent(
     asset="ETH",

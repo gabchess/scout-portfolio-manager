@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Renamed the project from Portfolio Intel / zerion-portfolio-manager to **Scout**. The GitHub repository moved from `gabchess/portfolio-manager` to `gabchess/scout-portfolio-manager`; the Python package moved from `zerion_portfolio_manager` to `scout_portfolio_manager` (`pyproject.toml` name is now `scout-portfolio-manager`); the MCP server and plugin identifiers in `.mcp.json`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` moved from `zerion-portfolio`/`portfolio-intel`/`portfolio-manager` to `scout-portfolio`/`scout-portfolio-manager`. Tool names (`get_pnl`, `get_portfolio_snapshot`, `parse_dca_request`, `preview_dca`) are unchanged. The Zerion API adapter keeps "zerion" in its own names; it is Zerion's API. No behavior changed.
+
 ### Added
 
 - The Zerion adapter now reads real per-asset holdings from `GET /wallets/{addr}/positions/` and a mapped transaction ledger from `GET /wallets/{addr}/transactions/`, replacing the earlier single synthetic aggregate holding. Transaction pages follow `links.next` up to `ZerionAPIConfig.max_pages` (default 20). `get_pnl` computes basis from each asset's observed buy transactions.

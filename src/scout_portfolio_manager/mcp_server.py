@@ -45,7 +45,7 @@ def create_server(host: ReadOnlyHost | None = None):
     FastMCP = _require_mcp()
     host = host or build_host()
     server = FastMCP(
-        "portfolio-manager",
+        "scout-portfolio",
         instructions=(
             "Read-only portfolio intelligence. "
             "Tools observe fixtures, calculate PnL, parse DCA requests, and build previews. "

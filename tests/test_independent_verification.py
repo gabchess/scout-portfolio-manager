@@ -1,4 +1,4 @@
-from zerion_portfolio_manager.verification import SettlementVerifier
+from scout_portfolio_manager.verification import SettlementVerifier
 
 
 def test_verifier_reads_both_execution_and_portfolio_sources_before_verifying():

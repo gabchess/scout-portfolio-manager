@@ -19,7 +19,7 @@ Python 3.11 or newer is required. The MCP extra is optional if you only use the 
 
 ```bash
 .venv/bin/python - <<'PY'
-from zerion_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager.host import ReadOnlyHost
 
 host = ReadOnlyHost("fixtures/portfolio.json")
 print(host.get_pnl())
@@ -32,8 +32,8 @@ The default fixture is synthetic. It is the default data source and is not live 
 ## 4. Use the Claude Code plugin locally
 
 ```text
-/plugin marketplace add /path/to/portfolio-manager
-/plugin install portfolio-intel@portfolio-manager
+/plugin marketplace add /path/to/scout-portfolio-manager
+/plugin install scout-portfolio@scout-portfolio-manager
 ```
 
 Then try:
