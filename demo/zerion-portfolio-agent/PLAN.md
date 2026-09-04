@@ -6,16 +6,16 @@ A self-contained, runnable demo surface that lets someone *see* the
 portfolio-manager agent loop this repository implements around Zerion-shaped
 data, without reading Python. One screen shows the whole boundary story:
 
-1. **Observe** — a portfolio snapshot (holdings + transaction ledger) from the
+1. **Observe**: a portfolio snapshot (holdings + transaction ledger) from the
    default synthetic fixture.
-2. **Calculate** — explainable USD PnL with the formula, basis, and confidence
+2. **Calculate**: explainable USD PnL with the formula, basis, and confidence
    visible, not just a number.
-3. **Propose / Approve** — a natural-language DCA request is parsed into
+3. **Propose / Approve**: a natural-language DCA request is parsed into
    explicit fields; missing fields produce a clarification question, and a
    complete request produces a preview with `approval_state=required` and
    `execution_available=false`.
 
-The demo is a *window onto* `scout_portfolio_manager.host.ReadOnlyHost` — it
+The demo is a *window onto* `scout_portfolio_manager.host.ReadOnlyHost`. It
 adds no new portfolio logic of its own.
 
 ## MVP (in scope)
