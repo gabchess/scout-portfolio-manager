@@ -12,170 +12,107 @@
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
         <h1>Scout</h1>
-        <p>Zerion portfolio-manager agent, tech demo</p>
+        <p>
+          A read-only agent for one wallet. It watches, calculates, analyzes,
+          and proposes a DCA plan. You approve.
+        </p>
       </div>
     </div>
     <div class="topbar-badges">
-      <span class="badge badge-readonly">READ-ONLY</span>
-      <span class="badge badge-fixture" id="source-badge">FIXTURE DATA</span>
+      <span class="badge badge-readonly">Read-only</span>
+      <span class="badge badge-fixture" id="source-badge">Fixture data</span>
     </div>
   </header>
-
-  <section class="pipeline" aria-label="Agent boundary pipeline">
-    <span class="stage stage-on" data-stage="observe">observe</span>
-    <span class="arrow">→</span>
-    <span class="stage stage-on" data-stage="calculate">calculate</span>
-    <span class="arrow">→</span>
-    <span class="stage stage-on" data-stage="propose">propose</span>
-    <span class="arrow">→</span>
-    <span class="stage stage-pending" data-stage="approve" title="No approval record exists yet in this host">approve</span>
-    <span class="arrow arrow-cut">⇸</span>
-    <span class="stage stage-off" title="Not available in this host">execute 🔒</span>
-    <span class="arrow arrow-cut">⇸</span>
-    <span class="stage stage-off" title="Not available in this host">verify 🔒</span>
-    <span class="pipeline-note">approval_state: required &middot; execution_available: false. Approval required. Scout stops here.</span>
-  </section>
 
   <main class="grid">
     <div class="col">
       <section class="card" id="snapshot-card">
-        <div class="card-head">
-          <h2>Portfolio snapshot</h2>
-          <span class="boundary boundary-observe">observed</span>
-        </div>
+        <div class="card-head"><h2>Snapshot</h2></div>
         <div class="card-body" id="snapshot-body">
-          <p class="loading">Loading snapshot…</p>
+          <p class="loading">Loading&hellip;</p>
         </div>
       </section>
 
       <section class="card" id="pnl-card">
-        <div class="card-head">
-          <h2>What&rsquo;s the PnL, Scout?</h2>
-          <span class="boundary boundary-calculate">calculated</span>
-        </div>
+        <div class="card-head"><h2>PnL</h2></div>
         <div class="card-body" id="pnl-body">
-          <p class="loading">Loading PnL…</p>
+          <p class="loading">Loading&hellip;</p>
         </div>
       </section>
 
       <section class="card" id="ta-card">
-        <div class="card-head">
-          <h2>Technical Analysis</h2>
-          <span class="boundary boundary-calculate">calculated</span>
-        </div>
+        <div class="card-head"><h2>This week</h2></div>
         <div class="card-body" id="ta-body">
-          <p class="loading">Loading indicators…</p>
+          <p class="loading">Loading&hellip;</p>
         </div>
       </section>
 
       <section class="card" id="alerts-card">
-        <div class="card-head">
-          <h2>Alerts</h2>
-          <span class="boundary boundary-calculate">calculated</span>
-        </div>
+        <div class="card-head"><h2>Alerts</h2></div>
         <div class="card-body" id="alerts-body">
-          <p class="loading">Checking alert rules…</p>
+          <p class="loading">Loading&hellip;</p>
         </div>
       </section>
     </div>
 
     <div class="col">
       <section class="card" id="dca-windows-card">
-        <div class="card-head">
-          <h2>DCA Windows</h2>
-          <span class="boundary boundary-propose">proposal</span>
-        </div>
+        <div class="card-head"><h2>Buy window</h2></div>
         <div class="card-body">
-          <label class="risk-label" for="risk-profile-select">Risk profile</label>
+          <label class="risk-label" for="risk-profile-select">Risk</label>
           <select id="risk-profile-select" aria-label="Risk profile">
-            <option value="conservative">conservative</option>
-            <option value="balanced" selected>balanced</option>
-            <option value="aggressive">aggressive</option>
+            <option value="conservative">Conservative</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="aggressive">Aggressive</option>
           </select>
           <div id="dca-windows-body" class="card-body-inner">
-            <p class="loading">Loading DCA window…</p>
+            <p class="loading">Loading&hellip;</p>
           </div>
         </div>
       </section>
 
       <section class="card card-agent" id="dca-card">
-        <div class="card-head">
-          <h2>Ask for a DCA plan, get a proposal.</h2>
-          <span class="boundary boundary-propose">proposal</span>
-        </div>
+        <div class="card-head"><h2>Ask for a plan, get a proposal.</h2></div>
         <div class="card-body">
-          <p class="agent-hint">
-            Describe a dollar-cost-averaging plan in plain language. Missing
-            details produce a clarification question. The agent never guesses.
-            A complete request produces a <em>preview only</em>.
-          </p>
           <form id="dca-form" autocomplete="off">
             <div class="input-row">
               <input
                 id="dca-input"
                 type="text"
-                placeholder="e.g. DCA another $300 of ETH"
+                placeholder="e.g. DCA $300 of ETH weekly"
                 aria-label="DCA request"
               />
-              <button type="submit" id="dca-submit">Parse &amp; preview</button>
+              <button type="submit" id="dca-submit">Preview</button>
             </div>
           </form>
           <div class="chips">
             <button class="chip" data-example="DCA another $300 of ETH">
-              incomplete → clarification
+              $300 into ETH
             </button>
             <button
               class="chip"
               data-example="DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456"
             >
-              complete → preview
+              $300 ETH, weekly
             </button>
           </div>
-          <div id="dca-result" class="dca-result">
-            <p class="placeholder">
-              Try an example above to see how the agent parses a request into
-              explicit fields.
-            </p>
-          </div>
-          <div class="no-execute">
-            <span class="lock">🔒</span>
-            No execute button exists. This host cannot connect a wallet, sign,
-            or submit a transaction. Approval and execution belong to a
-            separately authorized rail.
-          </div>
+          <div id="dca-result" class="dca-result"></div>
         </div>
       </section>
 
       <section class="card" id="report-card">
-        <div class="card-head">
-          <h2>Full report</h2>
-          <span class="boundary boundary-calculate">calculated</span>
-        </div>
+        <div class="card-head"><h2>Full report</h2></div>
         <div class="card-body">
-          <p class="agent-hint">
-            Every panel on this page in one static, self-contained file: the
-            full observe&rarr;calculate&rarr;propose chain, plus alerts.
-          </p>
           <a class="report-link" href="/api/report" target="_blank" rel="noopener">
-            Download the full report (scout-report.html)
+            Download report
           </a>
-          <p class="report-note">
-            Same file the watch skill writes on demand:
-            <code>uv run python -m scout_portfolio_manager.reporting_html</code>
-          </p>
         </div>
       </section>
     </div>
   </main>
 
   <footer class="safety-strip">
-    <p class="built-on">Built on the Zerion API.</p>
-    <code>observe ≠ calculate ≠ propose ≠ approve ≠ execute ≠ verify</code>
-    <span class="dot">·</span> No wallet connect
-    <span class="dot">·</span> No signing
-    <span class="dot">·</span> No transaction submission
-    <span class="dot">·</span> No investment advice
-    <span class="dot">·</span> Fixture values are examples, not live market data
+    <p>Analysis, not financial advice.</p>
   </footer>
 
   <script src="app.js"></script>

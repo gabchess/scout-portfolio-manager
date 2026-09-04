@@ -1,30 +1,37 @@
 /* Front-end for the Zerion portfolio-manager agent demo.
-   Renders read-only host responses; contains no portfolio logic of its own. */
+   Renders read-only host responses; contains no portfolio logic of its own.
+
+   Design rule for this file: every panel's MAIN view is a heading plus at
+   most a couple of short lines, one plain-language verdict, or a small set
+   of plain-value chips. Anything technical (raw indicators, formulas,
+   confidence tags, IDs, fixture locators) goes inside that panel's single
+   <details> element, collapsed by default. */
 
 const $ = (sel) => document.querySelector(sel);
 
 const usd = (n) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
-// Matches the deck's month abbreviations exactly ("Sept", not Intl's "Sep").
-const MONTH_ABBR = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
   "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sept",
-  "Oct",
-  "Nov",
-  "Dec",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
-const fmtDate = (iso) => {
+const fmtMonthDay = (iso) => {
   const d = new Date(iso);
-  return `${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 };
+
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 const esc = (s) =>
   String(s).replace(
@@ -56,6 +63,12 @@ async function postJSON(path, body) {
   return res.json();
 }
 
+const details = (summary, innerHtml) => `
+  <details class="details">
+    <summary>${esc(summary)}</summary>
+    ${innerHtml}
+  </details>`;
+
 /* ---------- Snapshot (observe) ---------- */
 
 function renderSnapshot(data) {
@@ -68,18 +81,14 @@ function renderSnapshot(data) {
   }
   const s = data.snapshot;
   $("#source-badge").textContent =
-    s.source.kind === "fixture"
-      ? "FIXTURE DATA"
-      : esc(s.source.kind).toUpperCase();
+    s.source.kind === "fixture" ? "Fixture data" : cap(s.source.kind);
 
   const total = s.holdings.reduce((acc, h) => acc + h.value_usd, 0);
 
   const holdingsRows = s.holdings
     .map(
       (h) => `<tr>
-        <td><span class="asset-cell"><span class="asset-dot">${esc(
-          h.asset.slice(0, 3),
-        )}</span>${esc(h.asset)}</span></td>
+        <td>${esc(h.asset)}</td>
         <td class="num">${h.quantity}</td>
         <td class="num">${usd(h.value_usd)}</td>
       </tr>`,
@@ -100,25 +109,29 @@ function renderSnapshot(data) {
     .join("");
 
   el.innerHTML = `
-    <div class="kv-row">
-      <div class="kv"><div class="k">Wallet</div><div class="v">${esc(s.wallet_address)}</div></div>
-      <div class="kv"><div class="k">Chain</div><div class="v">${esc(s.chain)}</div></div>
-      <div class="kv"><div class="k">Observed at</div><div class="v">${esc(s.observed_at)}</div></div>
-      <div class="kv"><div class="k">Source</div><div class="v">${esc(s.source.kind)} · ${esc(s.source.locator)}</div></div>
-    </div>
-    <div class="total-value">
+    <div class="stat-hero">
       <div class="num">${usd(total)}</div>
-      <div class="lbl">total observed value (fixture example, not live market data)</div>
+      <div class="lbl">One wallet, one snapshot.</div>
     </div>
-    <table>
-      <thead><tr><th>Asset</th><th class="num">Quantity</th><th class="num">Value (USD)</th></tr></thead>
-      <tbody>${holdingsRows}</tbody>
-    </table>
-    <div class="subhead">Transaction ledger</div>
-    <table>
-      <thead><tr><th>Kind</th><th>Asset</th><th class="num">Qty</th><th class="num">Value</th><th class="num">Fee</th><th>Date</th></tr></thead>
-      <tbody>${txRows}</tbody>
-    </table>`;
+    ${details(
+      "Details",
+      `
+      <div class="kv-row">
+        <div class="kv"><div class="k">Wallet</div><div class="v">${esc(s.wallet_address)}</div></div>
+        <div class="kv"><div class="k">Chain</div><div class="v">${esc(cap(s.chain))}</div></div>
+        <div class="kv"><div class="k">Observed</div><div class="v">${fmtMonthDay(s.observed_at)}</div></div>
+        <div class="kv"><div class="k">Source</div><div class="v">${esc(s.source.kind)} &middot; ${esc(s.source.locator)}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Asset</th><th class="num">Quantity</th><th class="num">Value</th></tr></thead>
+        <tbody>${holdingsRows}</tbody>
+      </table>
+      <div class="subhead">Transaction ledger</div>
+      <table>
+        <thead><tr><th>Kind</th><th>Asset</th><th class="num">Qty</th><th class="num">Value</th><th class="num">Fee</th><th>Date</th></tr></thead>
+        <tbody>${txRows}</tbody>
+      </table>`,
+    )}`;
 }
 
 /* ---------- PnL (calculate) ---------- */
@@ -131,128 +144,112 @@ function renderPnl(data, snapshot) {
     )}</p>`;
     return;
   }
+  if (!data.results.length) {
+    el.innerHTML = `<p class="placeholder">No PnL to show yet.</p>`;
+    return;
+  }
   const cls = (n) => (n >= 0 ? "pos" : "neg");
   const sign = (n) => (n >= 0 ? "+" : "");
   const snap = snapshot?.status === "ok" ? snapshot.snapshot : null;
+
   const blocks = data.results
     .map((r) => {
       const buys = (snap?.transactions || []).filter(
         (t) => t.asset === r.asset && t.kind === "buy",
       );
-      const basisLine = buys.length
-        ? `<div class="formula">Cost basis: bought ${esc(r.asset)} for ${usd(
-            buys.reduce((acc, t) => acc + t.value_usd, 0),
-          )} on ${fmtDate(buys[0].occurred_at)}.</div>`
-        : "";
+      const paid = buys.reduce((acc, t) => acc + t.value_usd, 0);
       const holding = (snap?.holdings || []).find((h) => h.asset === r.asset);
-      const valueLine = holding
-        ? `<div class="formula">Current value: ${esc(r.asset)} is ${usd(
-            holding.value_usd,
-          )} in this snapshot (${fmtDate(r.valuation_at)}).</div>`
-        : "";
+      const worthNow = holding ? holding.value_usd : null;
+
+      const detailRows = `
+        <div class="formula"><b>How this was computed:</b> ${esc(r.formula)}</div>
+        ${
+          buys.length
+            ? `<div class="formula">Bought ${esc(r.asset)} for ${usd(paid)} on ${fmtMonthDay(buys[0].occurred_at)}.</div>`
+            : ""
+        }
+        <div class="formula">Confidence: ${esc(r.confidence)}. Valued as of ${fmtMonthDay(r.valuation_at)}.</div>
+        ${r.warnings.length ? `<p class="callout callout-question">${esc(r.warnings.join("; "))}</p>` : ""}`;
+
+      if (paid === 0 || worthNow == null) {
+        return `<p class="placeholder">Not enough data for ${esc(r.asset)}.</p>`;
+      }
+
       return `
-      <div class="pnl-asset">
-        <span class="sym">${esc(r.asset)}</span>
-        <span class="conf conf-${esc(r.confidence)}">confidence: ${esc(r.confidence)}</span>
-      </div>
-      <div class="pnl-stats">
-        <div class="stat"><div class="k">Unrealized</div>
-          <div class="v ${cls(r.unrealized_usd)}">${sign(r.unrealized_usd)}${usd(r.unrealized_usd)}</div></div>
-        <div class="stat"><div class="k">Realized</div>
-          <div class="v ${cls(r.realized_usd)}">${sign(r.realized_usd)}${usd(r.realized_usd)}</div></div>
-        <div class="stat"><div class="k">Total</div>
-          <div class="v ${cls(r.total_usd)}">${sign(r.total_usd)}${usd(r.total_usd)}</div></div>
-        <div class="stat"><div class="k">Return</div>
-          <div class="v ${cls(r.return_pct)}">${sign(r.return_pct)}${r.return_pct}%</div></div>
-      </div>
-      ${basisLine}${valueLine}
-      <div class="formula"><b>How this was computed:</b> ${esc(r.formula)}
-        &nbsp;·&nbsp; basis from observed buy transactions, never inferred
-        &nbsp;·&nbsp; valued at ${esc(r.valuation_at)}</div>
-      ${r.warnings.length ? `<div class="callout callout-question">${esc(r.warnings.join("; "))}</div>` : ""}`;
+        <div class="pnl-hero">
+          <div class="pnl-num"><div class="num">${usd(paid)}</div><div class="lbl">Paid</div></div>
+          <div class="pnl-num"><div class="num">${usd(worthNow)}</div><div class="lbl">Worth now</div></div>
+          <div class="pnl-num"><div class="num ${cls(r.return_pct)}">${sign(r.return_pct)}${r.return_pct}%</div><div class="lbl">Return</div></div>
+        </div>
+        <p class="asof">as of ${fmtMonthDay(r.valuation_at)}</p>
+        ${details("Details", detailRows)}`;
     })
-    .join(
-      "<hr style='border:none;border-top:1px solid var(--border);margin:14px 0'/>",
-    );
+    .join("<hr class='rule'/>");
 
   const unknown = data.unknown.length
-    ? `<div class="callout callout-question">${esc(data.unknown.join("; "))}</div>`
+    ? `<p class="placeholder">${esc(data.unknown.join("; "))}</p>`
     : "";
-  el.innerHTML =
-    blocks + unknown || `<p class="placeholder">No PnL results.</p>`;
+  el.innerHTML = blocks + unknown;
 }
 
 /* ---------- DCA agent (propose / approve) ---------- */
 
-const FIELD_ORDER = [
-  "asset",
-  "amount_usd",
-  "chain",
-  "schedule",
-  "source",
-  "destination",
-];
-
-function intentGrid(intent, missing) {
-  const cells = FIELD_ORDER.map((name) => {
-    const val = intent[name];
-    const isMissing = missing.includes(name);
-    return `<div class="field ${isMissing ? "field-missing" : ""}">
-      <div class="k">${esc(name.replace("_", " "))}</div>
-      <div class="v">${isMissing ? "missing, will ask" : esc(name === "amount_usd" ? usd(val) : val)}</div>
-    </div>`;
-  }).join("");
-  return `<div class="intent-grid">${cells}</div>`;
+function plainChips(intent) {
+  const order = ["asset", "amount_usd", "chain", "schedule"];
+  const items = order
+    .map((name) => {
+      const val = intent[name];
+      if (val == null || val === "") return null;
+      if (name === "amount_usd") return usd(val);
+      if (name === "chain" || name === "schedule") return cap(val);
+      return val;
+    })
+    .filter(Boolean);
+  return `<div class="chip-row">${items
+    .map((v) => `<span class="chip-plain">${esc(v)}</span>`)
+    .join("")}</div>`;
 }
 
-function renderDca(parseRes, previewRes) {
+function renderDca(text, parseRes, previewRes) {
   const el = $("#dca-result");
 
   if (parseRes.status === "needs_clarification") {
     el.innerHTML = `
-      <div class="status-line">
-        <span class="pill pill-clarify">needs clarification</span>
-        <span class="mono-id">boundary: ${esc(parseRes.boundary)}</span>
-      </div>
-      ${intentGrid(parseRes.intent, parseRes.missing)}
-      <div class="callout callout-question">
-        <b>Agent asks (never guesses):</b> ${esc(parseRes.question)}
-      </div>`;
+      <p class="user-line">&ldquo;${esc(text)}&rdquo;</p>
+      <p class="callout callout-question">${esc(parseRes.question)}</p>
+      ${details(
+        "Details",
+        `<div class="mono-id">boundary: ${esc(parseRes.boundary)}</div>
+         <div class="mono-id">missing: ${esc(parseRes.missing.join(", "))}</div>`,
+      )}`;
     return;
   }
 
-  // Parse is ready; show the full preview response.
   const p = previewRes.preview;
   el.innerHTML = `
-    <div class="status-line">
-      <span class="pill pill-ready">intent complete</span>
-      <span class="mono-id">boundary: ${esc(previewRes.boundary)}</span>
-    </div>
-    ${intentGrid(previewRes.intent, [])}
-    <div class="preview-box">
-      <h3>
-        DCA preview
-        <span class="pill pill-approval">approval_state: ${esc(p.approval_state)}</span>
-        <span class="pill pill-noexec">execution_available: false</span>
-      </h3>
-      <div class="intent-grid">
+    <p class="user-line">&ldquo;${esc(text)}&rdquo;</p>
+    ${plainChips(previewRes.intent)}
+    <p class="approval-line">Approval required.</p>
+    ${details(
+      "Details",
+      `<div class="intent-grid">
         <div class="field"><div class="k">Expected output</div><div class="v">${p.expected_output} ${esc(p.asset)}</div></div>
         <div class="field"><div class="k">Fees</div><div class="v">${usd(p.fees_usd)}</div></div>
         <div class="field"><div class="k">Slippage</div><div class="v">${p.slippage_pct}%</div></div>
         <div class="field"><div class="k">Max fee</div><div class="v">${usd(p.max_fee_usd)}</div></div>
         <div class="field"><div class="k">Quote expiry</div><div class="v">${esc(p.quote_expiry)}</div></div>
-        <div class="field"><div class="k">Preview ID</div><div class="v">${esc(p.preview_id.slice(0, 13))}…</div></div>
+        <div class="field"><div class="k">Preview ID</div><div class="v">${esc(p.preview_id.slice(0, 13))}&hellip;</div></div>
       </div>
       <ul class="assumed">
-        ${previewRes.assumed.map((a) => `<li>assumed: ${esc(a)}</li>`).join("")}
+        ${previewRes.assumed.map((a) => `<li>${esc(a)}</li>`).join("")}
       </ul>
-      <div class="preview-note">${esc(previewRes.note)}</div>
-    </div>`;
+      <div class="preview-note">${esc(previewRes.note)}</div>`,
+    )}`;
 }
 
 async function runDca(text) {
   const el = $("#dca-result");
-  el.innerHTML = `<p class="loading">Parsing request…</p>`;
+  el.innerHTML = `<p class="loading">Parsing&hellip;</p>`;
   const parseRes = await postJSON("/api/dca/parse", { text });
   if (parseRes.status === "error") {
     el.innerHTML = `<p class="placeholder">${esc(parseRes.error)}</p>`;
@@ -262,71 +259,75 @@ async function runDca(text) {
     parseRes.status === "ready"
       ? await postJSON("/api/dca/preview", { text })
       : null;
-  renderDca(parseRes, previewRes);
+  renderDca(text, parseRes, previewRes);
 }
 
-/* ---------- Technical Analysis (calculate) ---------- */
+/* ---------- Analysis (calculate), verdict sourced from dca_windows' label ---------- */
 
-function renderTa(data) {
+function verdictText(label, asset) {
+  if (label === "favorable") return `Good week to buy ${asset}.`;
+  if (label === "unfavorable") return `Not a great week to buy ${asset}.`;
+  return `No strong signal on ${asset} this week.`;
+}
+
+function renderTa(analyzeData, windowData) {
   const el = $("#ta-body");
-  if (data.status !== "ok") {
+  if (analyzeData.status !== "ok") {
     el.innerHTML = `<p class="placeholder">Analysis unavailable: ${esc(
-      data.error?.message || data.error || "unknown error",
+      analyzeData.error?.message || analyzeData.error || "unknown error",
     )}</p>`;
     return;
   }
-  const ind = data.indicators || {};
+  const ind = analyzeData.indicators || {};
   const range = ind.range_30d;
   const rangeText =
-    range != null ? `${usd(range.low)} &ndash; ${usd(range.high)}` : "&mdash;";
-  const drawdown = ind.drawdown_from_cost_basis_pct;
-  const cls = (n) => (n == null ? "" : n >= 0 ? "pos" : "neg");
-  const sign = (n) => (n >= 0 ? "+" : "");
-  const stale = data.freshness?.stale;
+    range != null ? `${usd(range.low)}&ndash;${usd(range.high)}` : "&mdash;";
+  const label = windowData?.status === "ok" ? windowData.label : null;
+  const asset = analyzeData.asset;
 
-  const staleHtml = stale
-    ? `<div class="callout callout-question"><b>Price data is stale.</b> Last observed price: ${esc(
-        data.freshness.last_price_date,
-      )} (max allowed age: ${data.freshness.max_age_days}d).</div>`
+  const verdict = label
+    ? verdictText(label, asset)
+    : `Not enough data on ${esc(asset)} yet.`;
+
+  const staleHtml = analyzeData.freshness?.stale
+    ? `<p class="callout callout-question">Price data is stale (last observed ${esc(
+        analyzeData.freshness.last_price_date,
+      )}).</p>`
     : "";
-  const unknownHtml = data.unknown.length
-    ? `<div class="callout callout-question">${esc(data.unknown.join("; "))}</div>`
+  const unknownHtml = analyzeData.unknown.length
+    ? `<p class="callout callout-question">${esc(analyzeData.unknown.join("; "))}</p>`
     : "";
 
   el.innerHTML = `
-    <div class="ta-asset">
-      <span class="sym">${esc(data.asset)}</span>
-      <span class="conf conf-${esc(data.confidence)}">confidence: ${esc(data.confidence)}</span>
-    </div>
-    <div class="ta-stats">
-      <div class="stat"><div class="k">SMA 20</div><div class="v">${
-        ind.sma_20 != null ? usd(ind.sma_20) : "&mdash;"
-      }</div></div>
-      <div class="stat"><div class="k">EMA 12</div><div class="v">${
-        ind.ema_12 != null ? usd(ind.ema_12) : "&mdash;"
-      }</div></div>
-      <div class="stat"><div class="k">RSI 14</div><div class="v">${
-        ind.rsi_14 != null ? ind.rsi_14 : "&mdash;"
-      }</div></div>
-      <div class="stat"><div class="k">30d range</div><div class="v">${rangeText}</div></div>
-      <div class="stat"><div class="k">Drawdown vs. basis</div>
-        <div class="v ${cls(drawdown)}">${
-          drawdown != null ? `${sign(drawdown)}${drawdown}%` : "&mdash;"
+    <p class="verdict">${esc(verdict)}</p>
+    ${details(
+      "Details",
+      `<div class="ta-stats">
+        <div class="stat"><div class="k">SMA 20</div><div class="v">${
+          ind.sma_20 != null ? usd(ind.sma_20) : "&mdash;"
         }</div></div>
-    </div>
-    ${staleHtml}${unknownHtml}
-    <div class="disclosure-strip">
-      <span class="pill pill-heuristic">heuristic, not backtested</span>
-    </div>
-    <div class="formula">${esc(data.disclosure)}</div>`;
+        <div class="stat"><div class="k">EMA 12</div><div class="v">${
+          ind.ema_12 != null ? usd(ind.ema_12) : "&mdash;"
+        }</div></div>
+        <div class="stat"><div class="k">RSI 14</div><div class="v">${
+          ind.rsi_14 != null ? ind.rsi_14 : "&mdash;"
+        }</div></div>
+        <div class="stat"><div class="k">30d range</div><div class="v">${rangeText}</div></div>
+      </div>
+      ${staleHtml}${unknownHtml}
+      <div class="formula">${esc(analyzeData.disclosure)}</div>`,
+    )}`;
 }
 
 async function loadTa() {
   const el = $("#ta-body");
-  el.innerHTML = `<p class="loading">Loading indicators…</p>`;
+  el.innerHTML = `<p class="loading">Loading&hellip;</p>`;
   try {
-    const data = await getJSON("/api/analyze");
-    renderTa(data);
+    const [analyzeData, windowData] = await Promise.all([
+      getJSON("/api/analyze"),
+      getJSON("/api/dca-windows"),
+    ]);
+    renderTa(analyzeData, windowData);
   } catch (err) {
     el.innerHTML = `<p class="placeholder">Analysis unavailable: ${esc(err.message)}</p>`;
   }
@@ -337,40 +338,40 @@ async function loadTa() {
 function renderDcaWindow(data) {
   const el = $("#dca-windows-body");
   if (data.status !== "ok") {
-    el.innerHTML = `<p class="placeholder">DCA window unavailable: ${esc(
+    el.innerHTML = `<p class="placeholder">Buy window unavailable: ${esc(
       data.error?.message || data.error || "unknown error",
     )}</p>`;
     return;
   }
   const staleHtml = data.freshness?.stale
-    ? `<div class="callout callout-question"><b>Price data is stale.</b> This classification is based on stale data.</div>`
+    ? `<p class="callout callout-question">Based on stale price data.</p>`
     : "";
-  const amountHtml =
+  const amountRow =
     data.suggested_amount_usd != null
       ? `<div class="field"><div class="k">Suggested amount</div><div class="v">${usd(
           data.suggested_amount_usd,
         )}</div></div>`
       : "";
   el.innerHTML = `
-    <span class="window-label window-${esc(data.label)}">${esc(data.label)} window</span>
-    <div class="intent-grid">
-      <div class="field"><div class="k">Asset</div><div class="v">${esc(data.asset)}</div></div>
-      <div class="field"><div class="k">Risk profile</div><div class="v">${esc(data.risk_profile)}</div></div>
-      <div class="field"><div class="k">Sizing fraction</div><div class="v">${data.sizing_fraction}</div></div>
-      ${amountHtml}
+    <div class="window-hero">
+      <div class="window-word window-${esc(data.label)}">${esc(cap(data.label))}</div>
+      <div class="lbl">for ${esc(data.asset)}, ${esc(data.risk_profile)} risk</div>
     </div>
-    <div class="formula">${esc(data.rationale)}</div>
-    <div class="formula">${esc(data.sensitivity_note)}</div>
-    ${staleHtml}
-    <div class="disclosure-strip">
-      <span class="pill pill-heuristic">heuristic, not backtested</span>
-      <span class="pill">${esc(data.not_financial_advice)}</span>
-    </div>`;
+    ${details(
+      "Details",
+      `<div class="intent-grid">
+        <div class="field"><div class="k">Sizing fraction</div><div class="v">${data.sizing_fraction}</div></div>
+        ${amountRow}
+      </div>
+      <div class="formula">${esc(data.rationale)}</div>
+      <div class="formula">${esc(data.sensitivity_note)}</div>
+      ${staleHtml}`,
+    )}`;
 }
 
 async function loadDcaWindow() {
   const el = $("#dca-windows-body");
-  el.innerHTML = `<p class="loading">Loading DCA window…</p>`;
+  el.innerHTML = `<p class="loading">Loading&hellip;</p>`;
   const riskProfile = $("#risk-profile-select").value;
   try {
     const data = await getJSON(
@@ -378,7 +379,7 @@ async function loadDcaWindow() {
     );
     renderDcaWindow(data);
   } catch (err) {
-    el.innerHTML = `<p class="placeholder">DCA window unavailable: ${esc(err.message)}</p>`;
+    el.innerHTML = `<p class="placeholder">Buy window unavailable: ${esc(err.message)}</p>`;
   }
 }
 
@@ -393,33 +394,35 @@ function renderAlerts(data) {
     return;
   }
   const { fired, not_fired, unknown } = data;
+
+  const mainLine = fired.length
+    ? `${fired.length} alert${fired.length === 1 ? "" : "s"} firing.`
+    : "No alerts fired.";
+
   if (!fired.length && !not_fired.length && !unknown.length) {
-    el.innerHTML = `
-      <p class="placeholder">No alerts set. This host stores alert rules in
-      <code>.scout/alerts.json</code> via <code>set_alert</code>; none exist yet.</p>
-      <div class="formula">${esc(data.not_financial_advice)}</div>`;
+    el.innerHTML = `<p class="verdict">No alerts set.</p>`;
     return;
   }
+
   const row = (e, kind) => `<div class="alert-row ${kind}">
       <span class="alert-tag">${kind === "fired" ? "fired" : "quiet"}</span>
-      <span>${esc(e.asset)} &middot; ${esc(e.kind)} &middot; observed ${esc(
-        e.observed_value,
-      )} vs. threshold ${esc(e.threshold)}${e.stale ? " &middot; stale" : ""}</span>
+      <span>${esc(e.asset)} &middot; ${esc(e.kind)}${e.stale ? " &middot; stale" : ""}</span>
     </div>`;
   const rows =
     fired.map((e) => row(e, "fired")).join("") +
     not_fired.map((e) => row(e, "not-fired")).join("");
   const unknownHtml = unknown.length
-    ? `<div class="callout callout-question">${esc(unknown.join("; "))}</div>`
+    ? `<p class="callout callout-question">${esc(unknown.join("; "))}</p>`
     : "";
-  el.innerHTML = `${rows}${unknownHtml}<div class="formula">${esc(
-    data.not_financial_advice,
-  )}</div>`;
+
+  el.innerHTML = `
+    <p class="verdict">${esc(mainLine)}</p>
+    ${details("Details", `${rows}${unknownHtml}`)}`;
 }
 
 async function loadAlerts() {
   const el = $("#alerts-body");
-  el.innerHTML = `<p class="loading">Checking alert rules…</p>`;
+  el.innerHTML = `<p class="loading">Loading&hellip;</p>`;
   try {
     const data = await getJSON("/api/alerts");
     renderAlerts(data);
