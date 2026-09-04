@@ -55,10 +55,7 @@ def create_server(host: ReadOnlyHost | None = None):
 
     @server.tool(name="get_portfolio_snapshot")
     def get_portfolio_snapshot() -> str:
-        """Observe the current portfolio snapshot from the configured read-only
-        source (fixture-backed by default, or a live Zerion-backed wallet read
-        when ZERION_API_KEY/ZERION_WALLET_ADDRESS are set). Read-only.
-        """
+        """Observe the configured source portfolio snapshot. Read-only."""
         return json.dumps(host.get_portfolio_snapshot(), indent=2, default=str)
 
     @server.tool(name="get_pnl")

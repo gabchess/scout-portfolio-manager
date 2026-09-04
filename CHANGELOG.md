@@ -14,7 +14,7 @@
 
 ## 0.1.0 — 2026-09-03
 
-Early public release.
+Early release. The GitHub repository is private.
 
 - Added a synthetic fixture-backed portfolio reader and explainable USD PnL.
 - Added explicit DCA intent parsing and approval-required previews.

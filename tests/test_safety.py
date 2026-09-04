@@ -37,9 +37,6 @@ def test_preview_contains_all_material_transaction_fields_and_requires_approval(
 
 
 def test_build_preview_mints_preview_id():
-    from datetime import timezone
-    from zerion_portfolio_manager.dca import DcaIntent
-
     intent = DcaIntent(
         asset="ETH",
         amount_usd=100.0,
