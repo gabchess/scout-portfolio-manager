@@ -6,7 +6,7 @@ Gabriel Abreu, the repository maintainer, merged GitHub pull request #3 (commit 
 
 ## Original versus sourced
 
-- **Sourced (PR #3, Cursor-crew authored):** the original demo surface, commit `e0ba0ed`. This commit's object is present in this repository's git object store at `.git/objects/e0/ba0ed7921e88e30cbc59c3e417820204a6e0ee`; merged 2026-09-04T08:04:32-03:00 per `git log -1 --format=%cI e0ba0ed`, verified by Nova the same day.
+- **Sourced (PR #3, Cursor-crew authored):** the original demo surface, commit `e0ba0ed`. This commit's object is present in this repository's git object store at `.git/objects/e0/ba0ed7921e88e30cbc59c3e417820204a6e0ee`; merged 2026-09-04T08:04:32-03:00 per `git log -1 --format=%cI e0ba0ed`, verified during release the same day.
 - **Adapted (repository maintainer's own work, after PR #3):** rewiring the demo to the renamed `scout_portfolio_manager` package and its current host contract, and bringing the folder under this augment's documentation, licensing, and provenance discipline.
 
 ## Dated inputs
