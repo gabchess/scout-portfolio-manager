@@ -29,6 +29,7 @@ augment-builder reference bar, for the first time this release.
 - Each tool listed in `ReadOnlyHost.tool_manifest()` now reports a `version` field. See `docs/ARCHITECTURE.md` for the deprecation policy this enables.
 - Every completed DCA preview now carries a `preview_id`, a host-minted id for future audit or idempotency use. It is not an authorization token: the preview still requires `approval_state=required`, and no execute step exists in this package.
 - Added a structured log line and an in-process counter, keyed by error kind, for every typed observe-boundary error.
+- Scout demo video source under `video/` (Remotion, TypeScript), the checked-in fixture and Remotion project used to render the Scout walkthrough.
 
 ### Changed
 
@@ -36,11 +37,13 @@ augment-builder reference bar, for the first time this release.
 - `Holding`, `Transaction`, and `PnlResult` now reject `Infinity`, `NaN`, and boolean or string values coerced into a float field, instead of accepting them silently.
 - `ZerionAPIConfig` validates `base_url` when it's constructed: a non-`https` scheme or an unexpected host raises immediately instead of failing later at request time.
 - `ReadOnlyHost` now accepts any zero-argument portfolio reader, not only a fixture path, so the optional Zerion adapter can plug in without a separate host implementation.
+- Rewrote `README.md` and `START-HERE.md` for install-with-your-agent: an installer now points an agent at the repo instead of following manual setup steps by hand.
 
 ### Fixed
 
 - `.mcp.json` launched a bare `zpm-mcp` command, which failed with `ENOENT` unless the repo's `.venv/bin` happened to already be on the launching shell's PATH. It now runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp`, which resolves the project and its optional `mcp` extra through `uv` alone, whether the repo is opened directly or installed through the plugin marketplace. `ZPM_FIXTURE_PATH` uses the same `${CLAUDE_PLUGIN_ROOT:-.}` default-syntax prefix, so the fixture resolves correctly either way.
 - The optional Zerion API source is now wired through the host and `zpm-mcp`, enabled only when both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are set. A partial pair fails at startup rather than at first call, and an API failure returns a typed error with no silent fallback to the fixture.
+- Demo UI: a failed snapshot or PnL fetch used to blank both panels silently. Each panel now fetches independently and shows a one-line error only in the panel that failed.
 
 ## 0.1.0 - 2026-09-03
 

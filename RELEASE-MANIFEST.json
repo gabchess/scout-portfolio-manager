@@ -39,9 +39,9 @@
   "release_artifacts": [
     {
       "path": "dist/scout-portfolio-0.2.0.zip",
-      "sha256": "e95989bcf598eeb74a8622ffa85ecc8bbb1b5c01de8c32eb611713149f42a7a2",
+      "sha256": "d4798d1be02d2df095699d560aaa98ac897e2f13faf0181ed24f4d64f9e55d9f",
       "version": "0.2.0",
-      "built_at": "2026-09-04T19:34:15Z"
+      "built_at": "2026-09-04T20:59:10Z"
     }
   ]
 }
