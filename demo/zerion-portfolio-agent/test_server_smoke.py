@@ -148,3 +148,64 @@ def test_unknown_api_route_returns_404_not_execute(running_server: ThreadingHTTP
     status, result = _post_json(running_server, "/api/dca/execute", body)
     assert status == 404
     assert result["status"] == "error"
+
+
+def test_get_analyze_defaults_to_held_asset(running_server: ThreadingHTTPServer) -> None:
+    result = _get_json(running_server, "/api/analyze")
+    assert result["status"] == "ok"
+    assert result["boundary"] == "calculate"
+    assert result["asset"] == "ETH"
+    assert "disclosure" in result
+    assert result["confidence"] == "low"
+
+
+def test_get_analyze_filtered_by_asset(running_server: ThreadingHTTPServer) -> None:
+    result = _get_json(running_server, "/api/analyze?asset=ETH")
+    assert result["status"] == "ok"
+    assert result["asset"] == "ETH"
+
+
+def test_get_dca_windows_defaults_to_balanced(running_server: ThreadingHTTPServer) -> None:
+    result = _get_json(running_server, "/api/dca-windows")
+    assert result["status"] == "ok"
+    assert result["boundary"] == "propose"
+    assert result["risk_profile"] == "balanced"
+    assert result["not_financial_advice"]
+
+
+def test_get_dca_windows_with_risk_profile(running_server: ThreadingHTTPServer) -> None:
+    result = _get_json(running_server, "/api/dca-windows?asset=ETH&risk_profile=aggressive")
+    assert result["status"] == "ok"
+    assert result["risk_profile"] == "aggressive"
+
+
+def test_get_dca_windows_rejects_unknown_risk_profile(
+    running_server: ThreadingHTTPServer,
+) -> None:
+    url = _url(running_server, "/api/dca-windows?risk_profile=yolo")
+    try:
+        urllib.request.urlopen(url)
+        raise AssertionError("expected HTTP 400 for an unknown risk_profile")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 400
+        result = json.loads(exc.read().decode("utf-8"))
+        assert result["status"] == "error"
+
+
+def test_get_alerts_empty_store(running_server: ThreadingHTTPServer) -> None:
+    result = _get_json(running_server, "/api/alerts")
+    assert result["status"] == "ok"
+    assert result["boundary"] == "calculate"
+    assert result["fired"] == []
+    assert result["not_fired"] == []
+    assert result["not_financial_advice"]
+
+
+def test_get_report_returns_self_contained_html(running_server: ThreadingHTTPServer) -> None:
+    url = _url(running_server, "/api/report")
+    with urllib.request.urlopen(url) as response:
+        assert response.status == 200
+        assert response.headers.get("Content-Type", "").startswith("text/html")
+        body = response.read().decode("utf-8")
+    assert body.startswith("<!DOCTYPE html>")
+    assert "Scout report" in body

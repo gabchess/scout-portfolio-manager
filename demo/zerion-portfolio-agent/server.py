@@ -1,13 +1,17 @@
 """Thin local demo server for the Zerion portfolio-manager agent demo.
 
-Wraps scout_portfolio_manager.host.ReadOnlyHost behind four read-only JSON
+Wraps scout_portfolio_manager.host.ReadOnlyHost behind read-only JSON
 endpoints and serves the static front-end. Stdlib only; no new dependencies.
 
 Endpoints (all read-only; there is no execute/sign/submit endpoint):
-    GET  /api/snapshot          -> host.get_portfolio_snapshot()
-    GET  /api/pnl[?asset=ETH]   -> host.get_pnl(asset)
-    POST /api/dca/parse         -> host.parse_dca_request(text)
-    POST /api/dca/preview       -> host.preview_dca(text)
+    GET  /api/snapshot                           -> host.get_portfolio_snapshot()
+    GET  /api/pnl[?asset=ETH]                    -> host.get_pnl(asset)
+    GET  /api/analyze[?asset=ETH]                -> host.analyze_asset(asset)
+    GET  /api/dca-windows[?asset=&risk_profile=] -> host.dca_windows(asset, risk_profile)
+    GET  /api/alerts                             -> host.check_alerts()
+    GET  /api/report                             -> reporting_html.build_report(host), as HTML
+    POST /api/dca/parse                          -> host.parse_dca_request(text)
+    POST /api/dca/preview                        -> host.preview_dca(text)
 
 Run:
     python3 demo/zerion-portfolio-agent/server.py
@@ -32,10 +36,23 @@ FIXTURE_PATH = REPO_ROOT / "fixtures" / "portfolio.json"
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from scout_portfolio_manager.host import ReadOnlyHost  # noqa: E402
+from scout_portfolio_manager.reporting_html import build_report  # noqa: E402
 
 HOST = ReadOnlyHost(FIXTURE_PATH)
 
 MAX_BODY_BYTES = 16 * 1024
+VALID_RISK_PROFILES = {"conservative", "balanced", "aggressive"}
+
+
+def _default_asset() -> str | None:
+    """First held asset in the current snapshot, used when a GET endpoint gets
+    no ?asset= query param. Avoids hardcoding "ETH" so the demo still works if
+    the fixture ever gains a second holding."""
+    snapshot = HOST.get_portfolio_snapshot()
+    if snapshot["status"] != "ok":
+        return None
+    holdings = snapshot["snapshot"]["holdings"]
+    return holdings[0]["asset"] if holdings else None
 
 
 def _relativize_snapshot_locator(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -68,6 +85,15 @@ class DemoHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_html(self, body_text: str) -> None:
+        body = body_text.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def _read_text_body(self) -> str:
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > MAX_BODY_BYTES:
@@ -89,6 +115,50 @@ class DemoHandler(SimpleHTTPRequestHandler):
             asset_values = parse_qs(parsed.query).get("asset")
             asset: str | None = asset_values[0] if asset_values else None
             self._send_json(HOST.get_pnl(asset=asset))
+            return
+        if parsed.path == "/api/analyze":
+            query = parse_qs(parsed.query)
+            asset_values = query.get("asset")
+            asset = asset_values[0] if asset_values else _default_asset()
+            if not asset:
+                self._send_json(
+                    {"status": "error", "error": "no held asset to analyze; pass ?asset="},
+                    status=400,
+                )
+                return
+            self._send_json(HOST.analyze_asset(asset))
+            return
+        if parsed.path == "/api/dca-windows":
+            query = parse_qs(parsed.query)
+            asset_values = query.get("asset")
+            asset = asset_values[0] if asset_values else _default_asset()
+            if not asset:
+                self._send_json(
+                    {"status": "error", "error": "no held asset for a DCA window; pass ?asset="},
+                    status=400,
+                )
+                return
+            risk_values = query.get("risk_profile")
+            risk_profile = risk_values[0] if risk_values else "balanced"
+            if risk_profile not in VALID_RISK_PROFILES:
+                self._send_json(
+                    {
+                        "status": "error",
+                        "error": f"unknown risk_profile: {risk_profile!r}; "
+                        f"expected one of {sorted(VALID_RISK_PROFILES)}",
+                    },
+                    status=400,
+                )
+                return
+            self._send_json(HOST.dca_windows(asset, risk_profile=risk_profile))
+            return
+        if parsed.path == "/api/alerts":
+            asset_values = parse_qs(parsed.query).get("asset")
+            asset = asset_values[0] if asset_values else None
+            self._send_json(HOST.check_alerts(asset=asset))
+            return
+        if parsed.path == "/api/report":
+            self._send_html(build_report(HOST))
             return
         if parsed.path.startswith("/api/"):
             self._send_json({"status": "error", "error": "unknown endpoint"}, status=404)

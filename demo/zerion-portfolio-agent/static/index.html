@@ -57,9 +57,47 @@
           <p class="loading">Loading PnL…</p>
         </div>
       </section>
+
+      <section class="card" id="ta-card">
+        <div class="card-head">
+          <h2>Technical Analysis</h2>
+          <span class="boundary boundary-calculate">calculated</span>
+        </div>
+        <div class="card-body" id="ta-body">
+          <p class="loading">Loading indicators…</p>
+        </div>
+      </section>
+
+      <section class="card" id="alerts-card">
+        <div class="card-head">
+          <h2>Alerts</h2>
+          <span class="boundary boundary-calculate">calculated</span>
+        </div>
+        <div class="card-body" id="alerts-body">
+          <p class="loading">Checking alert rules…</p>
+        </div>
+      </section>
     </div>
 
     <div class="col">
+      <section class="card" id="dca-windows-card">
+        <div class="card-head">
+          <h2>DCA Windows</h2>
+          <span class="boundary boundary-propose">proposal</span>
+        </div>
+        <div class="card-body">
+          <label class="risk-label" for="risk-profile-select">Risk profile</label>
+          <select id="risk-profile-select" aria-label="Risk profile">
+            <option value="conservative">conservative</option>
+            <option value="balanced" selected>balanced</option>
+            <option value="aggressive">aggressive</option>
+          </select>
+          <div id="dca-windows-body" class="card-body-inner">
+            <p class="loading">Loading DCA window…</p>
+          </div>
+        </div>
+      </section>
+
       <section class="card card-agent" id="dca-card">
         <div class="card-head">
           <h2>Ask for a DCA plan, get a proposal.</h2>
@@ -105,6 +143,26 @@
             or submit a transaction. Approval and execution belong to a
             separately authorized rail.
           </div>
+        </div>
+      </section>
+
+      <section class="card" id="report-card">
+        <div class="card-head">
+          <h2>Full report</h2>
+          <span class="boundary boundary-calculate">calculated</span>
+        </div>
+        <div class="card-body">
+          <p class="agent-hint">
+            Every panel on this page in one static, self-contained file: the
+            full observe&rarr;calculate&rarr;propose chain, plus alerts.
+          </p>
+          <a class="report-link" href="/api/report" target="_blank" rel="noopener">
+            Download the full report (scout-report.html)
+          </a>
+          <p class="report-note">
+            Same file the watch skill writes on demand:
+            <code>uv run python -m scout_portfolio_manager.reporting_html</code>
+          </p>
         </div>
       </section>
     </div>

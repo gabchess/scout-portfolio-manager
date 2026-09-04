@@ -436,6 +436,121 @@ tr:last-child td { border-bottom: none; }
 }
 .no-execute .lock { flex-shrink: 0; }
 
+/* Technical Analysis */
+.ta-asset { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.ta-asset .sym { font-weight: 700; font-size: 16px; }
+.ta-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 1180px) { .ta-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.disclosure-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.disclosure-strip .pill {
+  color: var(--attention);
+  border-color: var(--tint-digital-line);
+  background: var(--tint-digital-fill);
+}
+.disclosure-strip .pill-heuristic {
+  color: var(--negative);
+  border-color: var(--tint-peach-line);
+  background: var(--tint-peach-fill);
+}
+
+.stale-flag {
+  color: var(--negative);
+  border-color: var(--tint-peach-line);
+  background: var(--tint-peach-fill);
+}
+
+/* DCA Windows */
+.risk-label {
+  display: block;
+  font: 600 10.5px/1.4 var(--mono);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+#risk-profile-select {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  outline: none;
+}
+#risk-profile-select:focus { border-color: var(--accent); }
+.card-body-inner { margin-top: 14px; }
+
+.window-label {
+  display: inline-block;
+  font: 700 13px/1 var(--mono);
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+.window-favorable { color: var(--positive); background: var(--tint-mint-fill); border: 1px solid var(--tint-mint-line); }
+.window-neutral { color: var(--attention); background: var(--tint-digital-fill); border: 1px solid var(--tint-digital-line); }
+.window-unfavorable { color: var(--negative); background: var(--tint-peach-fill); border: 1px solid var(--tint-peach-line); }
+
+/* Alerts */
+.alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.alert-row.fired { border-color: var(--tint-peach-line); background: var(--tint-peach-fill); }
+.alert-row.not-fired { border-color: var(--tint-mint-line); }
+.alert-row .alert-tag {
+  font: 700 10px/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  flex-shrink: 0;
+}
+.alert-row.fired .alert-tag { color: var(--negative); }
+.alert-row.not-fired .alert-tag { color: var(--positive); }
+
+/* Report download */
+.report-link {
+  display: inline-block;
+  background: var(--grad-mint-digital);
+  color: var(--zr-navy);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.report-link:hover { filter: brightness(1.08); }
+.report-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.report-note code {
+  font-family: var(--mono);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
 /* Footer */
 .safety-strip {
   padding: 12px 28px 18px;

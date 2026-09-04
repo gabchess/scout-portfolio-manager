@@ -265,6 +265,169 @@ async function runDca(text) {
   renderDca(parseRes, previewRes);
 }
 
+/* ---------- Technical Analysis (calculate) ---------- */
+
+function renderTa(data) {
+  const el = $("#ta-body");
+  if (data.status !== "ok") {
+    el.innerHTML = `<p class="placeholder">Analysis unavailable: ${esc(
+      data.error?.message || data.error || "unknown error",
+    )}</p>`;
+    return;
+  }
+  const ind = data.indicators || {};
+  const range = ind.range_30d;
+  const rangeText =
+    range != null ? `${usd(range.low)} &ndash; ${usd(range.high)}` : "&mdash;";
+  const drawdown = ind.drawdown_from_cost_basis_pct;
+  const cls = (n) => (n == null ? "" : n >= 0 ? "pos" : "neg");
+  const sign = (n) => (n >= 0 ? "+" : "");
+  const stale = data.freshness?.stale;
+
+  const staleHtml = stale
+    ? `<div class="callout callout-question"><b>Price data is stale.</b> Last observed price: ${esc(
+        data.freshness.last_price_date,
+      )} (max allowed age: ${data.freshness.max_age_days}d).</div>`
+    : "";
+  const unknownHtml = data.unknown.length
+    ? `<div class="callout callout-question">${esc(data.unknown.join("; "))}</div>`
+    : "";
+
+  el.innerHTML = `
+    <div class="ta-asset">
+      <span class="sym">${esc(data.asset)}</span>
+      <span class="conf conf-${esc(data.confidence)}">confidence: ${esc(data.confidence)}</span>
+    </div>
+    <div class="ta-stats">
+      <div class="stat"><div class="k">SMA 20</div><div class="v">${
+        ind.sma_20 != null ? usd(ind.sma_20) : "&mdash;"
+      }</div></div>
+      <div class="stat"><div class="k">EMA 12</div><div class="v">${
+        ind.ema_12 != null ? usd(ind.ema_12) : "&mdash;"
+      }</div></div>
+      <div class="stat"><div class="k">RSI 14</div><div class="v">${
+        ind.rsi_14 != null ? ind.rsi_14 : "&mdash;"
+      }</div></div>
+      <div class="stat"><div class="k">30d range</div><div class="v">${rangeText}</div></div>
+      <div class="stat"><div class="k">Drawdown vs. basis</div>
+        <div class="v ${cls(drawdown)}">${
+          drawdown != null ? `${sign(drawdown)}${drawdown}%` : "&mdash;"
+        }</div></div>
+    </div>
+    ${staleHtml}${unknownHtml}
+    <div class="disclosure-strip">
+      <span class="pill pill-heuristic">heuristic, not backtested</span>
+    </div>
+    <div class="formula">${esc(data.disclosure)}</div>`;
+}
+
+async function loadTa() {
+  const el = $("#ta-body");
+  el.innerHTML = `<p class="loading">Loading indicators…</p>`;
+  try {
+    const data = await getJSON("/api/analyze");
+    renderTa(data);
+  } catch (err) {
+    el.innerHTML = `<p class="placeholder">Analysis unavailable: ${esc(err.message)}</p>`;
+  }
+}
+
+/* ---------- DCA Windows (propose) ---------- */
+
+function renderDcaWindow(data) {
+  const el = $("#dca-windows-body");
+  if (data.status !== "ok") {
+    el.innerHTML = `<p class="placeholder">DCA window unavailable: ${esc(
+      data.error?.message || data.error || "unknown error",
+    )}</p>`;
+    return;
+  }
+  const staleHtml = data.freshness?.stale
+    ? `<div class="callout callout-question"><b>Price data is stale.</b> This classification is based on stale data.</div>`
+    : "";
+  const amountHtml =
+    data.suggested_amount_usd != null
+      ? `<div class="field"><div class="k">Suggested amount</div><div class="v">${usd(
+          data.suggested_amount_usd,
+        )}</div></div>`
+      : "";
+  el.innerHTML = `
+    <span class="window-label window-${esc(data.label)}">${esc(data.label)} window</span>
+    <div class="intent-grid">
+      <div class="field"><div class="k">Asset</div><div class="v">${esc(data.asset)}</div></div>
+      <div class="field"><div class="k">Risk profile</div><div class="v">${esc(data.risk_profile)}</div></div>
+      <div class="field"><div class="k">Sizing fraction</div><div class="v">${data.sizing_fraction}</div></div>
+      ${amountHtml}
+    </div>
+    <div class="formula">${esc(data.rationale)}</div>
+    <div class="formula">${esc(data.sensitivity_note)}</div>
+    ${staleHtml}
+    <div class="disclosure-strip">
+      <span class="pill pill-heuristic">heuristic, not backtested</span>
+      <span class="pill">${esc(data.not_financial_advice)}</span>
+    </div>`;
+}
+
+async function loadDcaWindow() {
+  const el = $("#dca-windows-body");
+  el.innerHTML = `<p class="loading">Loading DCA window…</p>`;
+  const riskProfile = $("#risk-profile-select").value;
+  try {
+    const data = await getJSON(
+      `/api/dca-windows?risk_profile=${encodeURIComponent(riskProfile)}`,
+    );
+    renderDcaWindow(data);
+  } catch (err) {
+    el.innerHTML = `<p class="placeholder">DCA window unavailable: ${esc(err.message)}</p>`;
+  }
+}
+
+/* ---------- Alerts (calculate) ---------- */
+
+function renderAlerts(data) {
+  const el = $("#alerts-body");
+  if (data.status !== "ok") {
+    el.innerHTML = `<p class="placeholder">Alerts unavailable: ${esc(
+      data.error?.message || data.error || "unknown error",
+    )}</p>`;
+    return;
+  }
+  const { fired, not_fired, unknown } = data;
+  if (!fired.length && !not_fired.length && !unknown.length) {
+    el.innerHTML = `
+      <p class="placeholder">No alerts set. This host stores alert rules in
+      <code>.scout/alerts.json</code> via <code>set_alert</code>; none exist yet.</p>
+      <div class="formula">${esc(data.not_financial_advice)}</div>`;
+    return;
+  }
+  const row = (e, kind) => `<div class="alert-row ${kind}">
+      <span class="alert-tag">${kind === "fired" ? "fired" : "quiet"}</span>
+      <span>${esc(e.asset)} &middot; ${esc(e.kind)} &middot; observed ${esc(
+        e.observed_value,
+      )} vs. threshold ${esc(e.threshold)}${e.stale ? " &middot; stale" : ""}</span>
+    </div>`;
+  const rows =
+    fired.map((e) => row(e, "fired")).join("") +
+    not_fired.map((e) => row(e, "not-fired")).join("");
+  const unknownHtml = unknown.length
+    ? `<div class="callout callout-question">${esc(unknown.join("; "))}</div>`
+    : "";
+  el.innerHTML = `${rows}${unknownHtml}<div class="formula">${esc(
+    data.not_financial_advice,
+  )}</div>`;
+}
+
+async function loadAlerts() {
+  const el = $("#alerts-body");
+  el.innerHTML = `<p class="loading">Checking alert rules…</p>`;
+  try {
+    const data = await getJSON("/api/alerts");
+    renderAlerts(data);
+  } catch (err) {
+    el.innerHTML = `<p class="placeholder">Alerts unavailable: ${esc(err.message)}</p>`;
+  }
+}
+
 /* ---------- Wire up ---------- */
 
 $("#dca-form").addEventListener("submit", (e) => {
@@ -279,6 +442,12 @@ document.querySelectorAll(".chip").forEach((chip) => {
     runDca(chip.dataset.example);
   });
 });
+
+$("#risk-profile-select").addEventListener("change", loadDcaWindow);
+
+loadTa();
+loadDcaWindow();
+loadAlerts();
 
 Promise.allSettled([getJSON("/api/snapshot"), getJSON("/api/pnl")]).then(
   ([snapshotResult, pnlResult]) => {
