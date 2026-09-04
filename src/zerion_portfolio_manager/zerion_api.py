@@ -120,7 +120,7 @@ class ZerionAPIReader:
 
     #: Bound on transaction pages followed via ``links.next``. Positions is not
     #: paginated by Zerion, so this bound applies only to ``get_transactions``.
-    MAX_PAGES: int = 20
+    MAX_PAGES: int = 10
 
     def __init__(self, config: ZerionAPIConfig, *, transport: Optional[Transport] = None) -> None:
         self.config = config
@@ -445,7 +445,8 @@ class ZerionAPIReader:
 
     def _positions_url(self, wallet_address: str) -> str:
         path = f"/wallets/{quote(wallet_address, safe='')}/positions/"
-        return f"{self.config.base_url.rstrip('/')}{path}?currency=usd&filter%5Bpositions%5D=only_simple"
+        query = "currency=usd&filter%5Bpositions%5D=only_simple"
+        return f"{self.config.base_url.rstrip('/')}{path}?{query}"
 
     def _transactions_url(self, wallet_address: str) -> str:
         path = f"/wallets/{quote(wallet_address, safe='')}/transactions/"

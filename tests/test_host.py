@@ -12,8 +12,8 @@ from zerion_portfolio_manager.host import (
     error_kind_counts,
 )
 from zerion_portfolio_manager.zerion_api import (
-    ZerionAPIError,
     ZerionAPIAuthError,
+    ZerionAPIError,
     ZerionAPIPaginationError,
     ZerionAPIServerError,
 )
