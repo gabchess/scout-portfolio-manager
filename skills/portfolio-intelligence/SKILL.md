@@ -53,7 +53,7 @@ from zerion_portfolio_manager.host import default_host
 host = default_host()
 print(host.get_portfolio_snapshot())
 print(host.get_pnl())
-print(host.parse_dca_request("What is my ETH PnL?"))
+print(host.get_pnl(asset="ETH"))
 ```
 
 The host exposes no execution tool. `call_tool("execute", ...)` must be rejected.

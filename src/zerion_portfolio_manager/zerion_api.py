@@ -4,10 +4,18 @@
 call to ``/wallets/{addr}/positions/`` for holdings, and a cursor-paginated
 walk of ``/wallets/{addr}/transactions/`` (via ``links.next``) for the ledger.
 Zerion's own docs state ``/positions/`` takes no pagination parameters; only
-``/transactions/`` paginates. Never invent asset or ledger data: a position
-missing a resolvable symbol, or a transaction with an unmapped operation
-type or a malformed transfer, is skipped with a logged warning rather than
-guessed at.
+``/transactions/`` paginates. NFT position list links are ``self``-only
+(``ResponseManyLinks``) and are never followed here. Do not send
+``filter[min_mined_at]`` / ``filter[max_mined_at]`` in this slice: those query
+params are 13-character epoch-ms strings, while response ``mined_at`` is
+ISO-8601. HTTP 429 has no ``Retry-After`` in the OpenAPI contract, but this
+adapter parses one anyway when the response actually carries it (RFC 6585
+defines the header for 429 regardless of what one API's docs mention); it is
+``None`` only when the header is absent. Only positions 503 documents
+``Retry-After`` in the contract itself. Never invent asset or ledger data: a
+position missing a resolvable symbol, or a transaction with an unmapped
+operation type or a malformed transfer, is skipped with a logged warning
+rather than guessed at.
 """
 
 from __future__ import annotations
@@ -71,10 +79,6 @@ class ZerionAPIServerError(ZerionAPIError):
         super().__init__(message, status=status)
 
 
-class ZerionAPINotFoundError(ZerionAPIError):
-    """The requested resource does not exist (HTTP 404)."""
-
-
 class ZerionAPIPaginationError(ZerionAPIError):
     """Pagination could not be completed safely: bad cursor, loop, or page cap."""
 
@@ -94,12 +98,22 @@ class ZerionAPIConfig:
     api_key: str = field(repr=False)
     base_url: str = "https://api.zerion.io/v1"
     timeout_seconds: float = 10.0
+    max_pages: int = 20
+    """Bounds worst-case request cost per snapshot call. Default 20 (~2,000 tx via
+    page[size]=100) balances completeness against free-tier daily quota (2k req/day);
+    override per-deployment for wallets with deeper history."""
 
     def __post_init__(self) -> None:
         if not isinstance(self.api_key, str) or not self.api_key.strip():
             raise ValueError("api_key must be non-empty")
         if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive and finite")
+        if (
+            not isinstance(self.max_pages, int)
+            or isinstance(self.max_pages, bool)
+            or self.max_pages <= 0
+        ):
+            raise ValueError("max_pages must be a positive integer")
         parsed = urlparse(self.base_url)
         if parsed.scheme != "https":
             raise ValueError("base_url must use https")
@@ -112,10 +126,6 @@ Transport = Callable[[Request, float], Mapping[str, Any]]
 
 class ZerionAPIReader:
     """Observe one wallet's holdings and ledger through Zerion's read-only API."""
-
-    #: Bound on transaction pages followed via ``links.next``. Positions is not
-    #: paginated by Zerion, so this bound applies only to ``get_transactions``.
-    MAX_PAGES: int = 20
 
     def __init__(self, config: ZerionAPIConfig, *, transport: Optional[Transport] = None) -> None:
         self.config = config
@@ -156,7 +166,7 @@ class ZerionAPIReader:
     def get_transactions(
         self, wallet_address: str, chain: str = "multi-chain"
     ) -> List[Transaction]:
-        """Fetch the wallet's transaction ledger, following links.next up to MAX_PAGES."""
+        """Fetch the wallet's transaction ledger, following links.next up to config.max_pages."""
         self._validate_wallet_and_chain(wallet_address, chain)
         transactions: List[Transaction] = []
         for item in self._paginate(self._transactions_url(wallet_address)):
@@ -179,11 +189,11 @@ class ZerionAPIReader:
 
         Raises ZerionAPIPaginationError on a malformed links object, a
         malformed or empty next cursor, a repeated cursor (loop guard), or
-        exceeding MAX_PAGES while a next page is still indicated.
+        exceeding config.max_pages while a next page is still indicated.
         """
         url: str = start_url
         seen: set[str] = set()
-        for _ in range(self.MAX_PAGES):
+        for _ in range(self.config.max_pages):
             if url in seen:
                 raise ZerionAPIPaginationError("Zerion API returned a repeated pagination cursor")
             seen.add(url)
@@ -206,7 +216,7 @@ class ZerionAPIReader:
             self._validate_next_link_host(next_link)
             url = next_link
         raise ZerionAPIPaginationError(
-            f"Zerion API pagination exceeded the {self.MAX_PAGES}-page bound"
+            f"Zerion API pagination exceeded the {self.config.max_pages}-page bound"
         )
 
     @staticmethod
@@ -440,7 +450,8 @@ class ZerionAPIReader:
 
     def _positions_url(self, wallet_address: str) -> str:
         path = f"/wallets/{quote(wallet_address, safe='')}/positions/"
-        return f"{self.config.base_url.rstrip('/')}{path}?currency=usd"
+        query = "currency=usd&filter%5Bpositions%5D=only_simple"
+        return f"{self.config.base_url.rstrip('/')}{path}?{query}"
 
     def _transactions_url(self, wallet_address: str) -> str:
         path = f"/wallets/{quote(wallet_address, safe='')}/transactions/"
@@ -462,10 +473,17 @@ class ZerionAPIReader:
                     "Zerion API authorization failed", status=exc.code
                 ) from None
             if exc.code == 404:
-                raise ZerionAPINotFoundError(
-                    "Zerion API resource not found", status=exc.code
+                # List endpoints return empty data, not 404. If Zerion ever
+                # sends 404 on a list path, keep it as a generic API error
+                # (status=404); the host maps that status to a "not_found"
+                # observe-error kind without a dedicated exception type.
+                raise ZerionAPIError(
+                    "Zerion API returned HTTP 404", status=exc.code
                 ) from None
             if exc.code == 429:
+                # OpenAPI TooManyRequests does not document Retry-After, but
+                # RFC 6585 defines the header for 429 regardless, so parse it
+                # when the response actually sends one; None otherwise.
                 raise ZerionAPIRateLimitError(
                     "Zerion API rate limit reached",
                     status=exc.code,

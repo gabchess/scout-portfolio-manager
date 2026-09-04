@@ -6,9 +6,11 @@ agent runtime / MCP client
        -> observe: FixturePortfolioReader or optional ZerionAPIReader -> typed PortfolioSnapshot
        -> calculate: PnL calculator -> explainable PnlResult
        -> propose: DCA parser -> partial DcaIntent
-       -> preview: complete request -> approval_state=required
+       -> preview: complete request -> approval_state=required + host-minted preview_id
        -> execution: not exposed by the host or MCP server
 ```
+
+`preview_id` is host-minted identity on every complete preview envelope. It is non-authoritative: a stable, quotable id for future audit/idempotency use, never an authorization token, and must not be treated as one absent a registry (none exists yet). There is no session store and no execute rail in this package surface.
 
 The default source is a local synthetic fixture. `zpm-mcp` wraps the same four read-only tools over stdio MCP and selects the source from the environment: the Zerion API only when `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are both set, otherwise the fixture. A partial pair is a startup error, and an API failure at call time returns a typed error rather than fixture data. The optional API adapter is an external, read-only data boundary: its availability, authorization, freshness, and response shape depend on the configured Zerion account and endpoint contract.
 
@@ -18,11 +20,13 @@ The package contains a fake execution adapter for isolated domain/test behavior;
 
 `ZerionAPIReader` reads two endpoints with different pagination shapes, per Zerion's own
 documentation. `GET /wallets/{addr}/positions/` takes no pagination parameters and returns
-every position in one call. `GET /wallets/{addr}/transactions/` paginates: the reader
+every position in one call. The reader sends `filter[positions]=only_simple` on that call;
+this makes explicit a filter value Zerion's API already defaults to, and is documentation of
+existing server behavior, not a behavior change. `GET /wallets/{addr}/transactions/` paginates: the reader
 requests `page[size]=100` and follows `links.next` until the API stops returning a next
-cursor, bounded by `ZerionAPIReader.MAX_PAGES` (20). Hitting the page cap while a next
-cursor is still present, or receiving a malformed or repeated cursor, raises
-`ZerionAPIPaginationError` rather than silently truncating the ledger.
+cursor, bounded by `ZerionAPIConfig.max_pages` (default 20). Hitting the page cap while a
+next cursor is still present, or receiving a malformed or repeated cursor, raises
+`ZerionAPIPaginationError` rather than silently truncating the ledger. NFT list links (`ResponseManyLinks`) are `self`-only and are never followed. Do not send `filter[min_mined_at]` here (epoch-ms query vs ISO response). HTTP 429 has no `Retry-After` in the OpenAPI contract, but the reader parses one anyway when the response actually carries it (RFC 6585 defines the header for 429; undocumented is not the same as absent), and leaves `retry_after_seconds=None` otherwise. Only positions 503 documents `Retry-After` in the contract itself.
 
 ## Tool versioning
 

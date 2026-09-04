@@ -34,3 +34,32 @@ def test_preview_contains_all_material_transaction_fields_and_requires_approval(
     assert preview.schedule == "one_time"
     assert preview.max_fee_usd == 5
     assert "settlement" in preview.failure_behavior.lower()
+
+
+def test_build_preview_mints_preview_id():
+    intent = DcaIntent(
+        asset="ETH",
+        amount_usd=100.0,
+        chain="ethereum",
+        schedule="weekly",
+        source="wallet:0xabc",
+        destination="wallet:0xdef",
+    )
+    a = build_preview(
+        intent=intent,
+        expected_output=0.04,
+        fees_usd=1.0,
+        slippage_pct=0.5,
+        quote_expiry=datetime(2026, 9, 3, 13, 0, tzinfo=timezone.utc),
+        max_fee_usd=5.0,
+    )
+    b = build_preview(
+        intent=intent,
+        expected_output=0.04,
+        fees_usd=1.0,
+        slippage_pct=0.5,
+        quote_expiry=datetime(2026, 9, 3, 13, 0, tzinfo=timezone.utc),
+        max_fee_usd=5.0,
+    )
+    assert isinstance(a.preview_id, str) and a.preview_id
+    assert a.preview_id != b.preview_id

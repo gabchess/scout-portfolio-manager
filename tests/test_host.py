@@ -13,9 +13,11 @@ from zerion_portfolio_manager.host import (
 )
 from zerion_portfolio_manager.zerion_api import (
     ZerionAPIAuthError,
-    ZerionAPINotFoundError,
+    ZerionAPIError,
     ZerionAPIPaginationError,
+    ZerionAPIRateLimitError,
     ZerionAPIServerError,
+    ZerionAPITransportError,
 )
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
@@ -90,9 +92,10 @@ def test_preview_dca_blocks_incomplete_request(host: ReadOnlyHost):
     result = host.preview_dca("DCA another $300 of ETH")
     assert result["status"] == "needs_clarification"
     assert result["preview"] is None
+    assert "preview_id" not in result
 
 
-def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost):
+def test_preview_dca_boundary_is_approve(host: ReadOnlyHost):
     result = host.preview_dca(
         "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456",
         expected_output=0.13,
@@ -103,6 +106,8 @@ def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost)
     )
     assert result["status"] == "preview_ready"
     assert result["boundary"] == "approve"
+    assert isinstance(result["preview_id"], str) and result["preview_id"]
+    assert result["preview_id"] == result["preview"]["preview_id"]
     assert result["approval_state"] == "required"
     assert result["execution_available"] is False
     preview = result["preview"]
@@ -117,10 +122,28 @@ def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost)
 def test_call_tool_dispatches_and_rejects_execute(host: ReadOnlyHost):
     snap = host.call_tool("get_portfolio_snapshot")
     assert snap["boundary"] == "observe"
-    with pytest.raises(PermissionError, match="not available on the read-only host"):
-        host.call_tool("execute", {"text": "DCA $300 ETH"})
     with pytest.raises(ValueError, match="unknown tool"):
         host.call_tool("not_a_tool")
+
+
+@pytest.mark.parametrize("tool_name", ["execute", "execute_dca", "submit", "sign"])
+def test_call_tool_permission_error_for_write_names(host: ReadOnlyHost, tool_name: str):
+    with pytest.raises(PermissionError, match="not available on the read-only host"):
+        host.call_tool(tool_name, {"text": "DCA $300 ETH"})
+
+
+def test_preview_dca_mints_distinct_preview_ids(host: ReadOnlyHost):
+    text = "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456"
+    kwargs = dict(
+        expected_output=0.13,
+        fees_usd=3.0,
+        slippage_pct=0.5,
+        quote_expiry="2026-09-03T13:00:00+00:00",
+        max_fee_usd=5.0,
+    )
+    a = host.preview_dca(text, **kwargs)
+    b = host.preview_dca(text, **kwargs)
+    assert a["preview_id"] != b["preview_id"]
 
 
 def test_default_host_resolves_repo_fixture():
@@ -163,7 +186,8 @@ class _FailingReader:
 @pytest.mark.parametrize(
     "exc, expected_kind",
     [
-        (ZerionAPINotFoundError("missing", status=404), "not_found"),
+        (ZerionAPIError("missing", status=404), "not_found"),
+        (ZerionAPIError("bad request", status=400), "api"),
         (ZerionAPIServerError("boom", status=503), "server"),
         (ZerionAPIPaginationError("bad cursor"), "pagination"),
     ],
@@ -172,6 +196,31 @@ def test_observe_error_maps_new_error_taxonomy_kinds(exc, expected_kind):
     result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
     assert result["status"] == "error"
     assert result["error"]["kind"] == expected_kind
+
+
+def test_observe_error_not_found_kind():
+    exc = ZerionAPIError("Zerion API returned HTTP 404", status=404)
+    result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
+    assert result["status"] == "error"
+    assert result["error"]["kind"] == "not_found"
+    assert result["error"]["http_status"] == 404
+
+
+@pytest.mark.parametrize(
+    "exc, expected_retryable",
+    [
+        (ZerionAPIRateLimitError("limited", status=429), True),
+        (ZerionAPIServerError("boom", status=503), True),
+        (ZerionAPITransportError("dropped"), True),
+        (ZerionAPIAuthError("denied", status=401), False),
+        (ZerionAPIPaginationError("bad cursor"), False),
+        (ZerionAPIError("missing", status=404), False),
+        (ZerionAPIError("bad request", status=400), False),
+    ],
+)
+def test_observe_error_retryable_flag(exc, expected_retryable):
+    result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
+    assert result["error"]["retryable"] is expected_retryable
 
 
 def test_observe_error_logged_emits_structured_log_and_increments_counter(caplog):
