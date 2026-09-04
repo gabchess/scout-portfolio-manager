@@ -1,8 +1,10 @@
 # Start here
 
-Scout is a read-only portfolio intelligence package: fixture-backed by default, with an optional read-only Zerion API adapter. This file is the exact install route for the harness you are on. Pick one.
+Version **0.3.0**.
 
-Current version: `0.2.0`, an early release. See [`RELEASE-MANIFEST.json`](RELEASE-MANIFEST.json) for what it proves and does not prove.
+Give this repository folder or ZIP to your agent and ask it to install Scout from [`START-HERE.md`](START-HERE.md). Discovery is not the same as a successful install: verify tools appear before trusting the host.
+
+Scout is a read-only portfolio intelligence package: fixture-backed by default, with an optional read-only Zerion API adapter. This file is the exact install route for the harness you are on. Pick one.
 
 ## What installing this package does and does not authorize
 
@@ -33,8 +35,8 @@ claude plugin install scout-portfolio@scout-portfolio-manager
 Then try:
 
 ```text
-/scout-portfolio:portfolio-intelligence What is my PnL?
-/scout-portfolio:portfolio-intelligence Preview a DCA request for $300 of ETH every week
+/portfolio-intelligence What is my PnL?
+/portfolio-intelligence Preview a DCA request for $300 of ETH every week
 ```
 
 Claude Code launches the bundled MCP server itself, through `.mcp.json`, which runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp`. This needs `uv` on the launching shell's PATH; no separate `pip install` or PATH setup for the package itself is required for this route.
@@ -86,7 +88,35 @@ To run the optional MCP server directly, without a plugin host:
 uv run --extra mcp zpm-mcp
 ```
 
-The server exposes `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, and `check_alerts`. Set `ZPM_FIXTURE_PATH` to point at another local fixture.
+The server registers eight tools: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, and `check_alerts`. Set `ZPM_FIXTURE_PATH` to point at another local fixture.
+
+## Route 4: Cursor or any MCP client (stdio)
+
+Scout speaks stdio MCP. Any MCP-capable host can attach it, including Cursor, without a Scout marketplace listing.
+
+1. Install [`uv`](https://docs.astral.sh/uv/) so it is on PATH.
+2. Clone or unzip this repository.
+3. Merge this repo's [`.mcp.json`](.mcp.json) into the host MCP config, or copy it to `.cursor/mcp.json` in a Cursor project:
+
+```json
+{
+  "mcpServers": {
+    "scout-portfolio": {
+      "command": "uv",
+      "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT:-.}", "--extra", "mcp", "zpm-mcp"],
+      "env": {
+        "ZPM_FIXTURE_PATH": "${CLAUDE_PLUGIN_ROOT:-.}/fixtures/portfolio.json"
+      }
+    }
+  }
+}
+```
+
+For Cursor outside a Claude plugin root, set `--project` to the absolute path of this checkout (or `.` when the working directory is the checkout) and point `ZPM_FIXTURE_PATH` at `fixtures/portfolio.json` under that checkout.
+
+4. Restart the host. Confirm the `scout-portfolio` server lists tools: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, `check_alerts`.
+
+Default data is the fixture. Cursor.app smoke-test may still be pending on some machines. Stdio config is the supported Cursor path today.
 
 ## Try the browser demo (any route)
 
@@ -96,49 +126,8 @@ uv run --project . demo/zerion-portfolio-agent/server.py
 
 Then open `http://127.0.0.1:8787`. The demo runs entirely offline on the fixture; it never reads `ZERION_API_KEY`. See [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md).
 
-## Enable the Zerion API adapter (any route)
-
-By default Scout reads the local fixture. To read one real wallet instead, set both environment variables below before starting the host, `zpm-mcp`, or the plugin. Setting only one is a configuration error; the process exits and names the missing variable without ever echoing the key.
-
-| Variable | Required | Meaning |
-|---|---|---|
-| `ZERION_API_KEY` | yes | Read-only Zerion API key from your own secret manager. |
-| `ZERION_WALLET_ADDRESS` | yes | The one wallet address to observe. |
-| `ZERION_CHAIN` | no | Label stored on the snapshot; defaults to `multi-chain`. |
-| `ZPM_FIXTURE_PATH` | no | Local fixture used only when the Zerion source is not enabled. |
-
-```bash
-export ZERION_API_KEY=$(cat ~/secrets/zerion-api-key)   # never paste the value inline
-export ZERION_WALLET_ADDRESS=0xYourWalletAddress
-uv run --extra mcp zpm-mcp
-```
-
-Once enabled, `get_pnl` computes cost basis from each asset's observed buy transactions; an asset with no observed buy reports a missing basis rather than an invented one. If the Zerion API rejects the key, rate-limits, or fails outright, the tools return a typed error. The fixture never fills in for a failed API call.
-
-Python callers can set the same thing directly, without environment variables:
-
-```python
-from scout_portfolio_manager.host import ReadOnlyHost
-from scout_portfolio_manager.zerion_api import ZerionAPIConfig, ZerionAPIReader, ZerionWalletReader
-
-reader = ZerionWalletReader(ZerionAPIReader(ZerionAPIConfig(api_key=key_from_secret_manager)), wallet)
-host = ReadOnlyHost(reader)
-```
-
-Full data-handling detail: [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md).
-
-## Run it on a loop
-
-[`skills/watch/SKILL.md`](skills/watch/SKILL.md) chains all read-only tools into one
-on-demand pass, observe through alert, and writes a static HTML report. Each run is a
-fresh process; alert rules persist in `.scout/alerts.json` on disk, not in memory. This
-is the shape built for a Claude Code `/loop` tick. See that file for the exact command
-and output contract.
-
 ## Boundaries
 
-`observe != calculate != propose != approve != execute != verify`. DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is `approval_state=required` and `execution_available=false`; wallet handoff and execution are a future product direction, not a current capability. See [`docs/SHOW-ME.md`](docs/SHOW-ME.md) for the full request-and-preview flow.
-
-Execution is optional and coming: Scout will DCA for you or just alert you, your choice. Until then, `dca_windows` and `check_alerts` only classify and report: "This is analysis, not financial advice."
+Live stages are observe, calculate, propose, and preview (`approval_state=required`, host-minted `preview_id`). Execute and verify are not product tools. DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is `approval_state=required` and `execution_available=false`; wallet handoff and execution are a future product direction, not a current capability.
 
 Never add API keys, private keys, seed phrases, or wallet secrets to this repository, prompts, fixtures, or logs. For the full data and security boundary, read [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md). If installation or discovery fails, continue with [`SUPPORT.md`](SUPPORT.md).

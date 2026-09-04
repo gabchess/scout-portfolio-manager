@@ -2,96 +2,129 @@
 
 Your agent should know what you own.
 
-A read-only agent for one wallet. It watches, calculates, and proposes a DCA plan. You approve. It never signs, sends, or trades.
+A read-only portfolio intelligence plugin and Python package, built on the Zerion API, for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
 
-Built as a corgi mascot: it herds the mess into one view.
+The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's real per-asset holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
 
-## The problem
+## Safety boundary
 
-"I bought the dip. I don't know what I paid, when, or on which chain."
+This project does not connect to wallets, use or move funds, sign transactions, submit transactions, or provide investment advice. A preview is a proposal, not a completed transaction.
 
-Wallets show activity. They don't tell a story.
+Live stages today:
 
-## Install it with your agent
+`observe -> calculate -> propose -> preview`
 
-Clone or fork this repo. Then tell your own agent: "Install the Scout plugin from this folder, and run the demo."
+A complete preview is `approval_state=required` with a host-minted `preview_id`. Approve is a label, not a session store. Execute and verify are not product tools. No execution or signing tool is registered on the host or MCP server. Wallet handoff and automated buys are roadmap, not current capabilities.
 
-**Claude Code**
+Optional Zerion access is read-only API key + wallet address env vars. It is not WalletConnect. Local alerts live in `.scout/alerts.json` and are checked on demand. There is no Slack, email, or Telegram push channel yet.
 
-```bash
-claude plugin marketplace add /path/to/scout-portfolio-manager
-claude plugin install scout-portfolio@scout-portfolio-manager
-```
+See [`CLAIMS.md`](CLAIMS.md) for the LinkedIn-safe truth table.
 
-Then ask it: `/scout-portfolio:portfolio-intelligence What is my PnL?`
-
-**Codex**
+## Quick start
 
 ```bash
-codex plugin marketplace add /path/to/scout-portfolio-manager/codex/.agents/plugins
-codex plugin add scout-portfolio --marketplace scout-portfolio-manager
+python3.11 -m venv .venv
+.venv/bin/pip install -e '.[test]'
+.venv/bin/pytest -q
 ```
 
-**Plain Python, no plugin host**
+The fixture contains 1 ETH bought for $2,000 and valued at $2,250, producing a transparent $250 unrealized gain. Fixture values are examples, not live market data.
+
+## Demo
+
+A browser demo lives at `demo/zerion-portfolio-agent/`, a small stdlib-only Python server plus a static page that renders this repo's agent loop: portfolio snapshot, explainable PnL, and a DCA chat that ends at a preview a human still approves. It runs entirely on the fixture wallet. No Zerion API key is needed.
+
+![Zerion Portfolio Agent demo, dashboard with portfolio snapshot, PnL, and a completed DCA preview showing approval_state required and execution_available false](docs/zerion-portfolio-demo-screenshot.png)
+
+See [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md) for run instructions.
+
+## Python API
+
+```python
+from pathlib import Path
+from scout_portfolio_manager.portfolio import FixturePortfolioReader
+from scout_portfolio_manager.intents import read_intent
+
+snapshot = FixturePortfolioReader(Path("fixtures/portfolio.json")).snapshot()
+answer = read_intent("What is my PnL?", snapshot)
+```
+
+The read-only host exposes observations, calculations, intent parsing, and previews:
+
+```python
+from scout_portfolio_manager.host import ReadOnlyHost
+
+host = ReadOnlyHost("fixtures/portfolio.json")
+host.get_portfolio_snapshot()
+host.get_pnl()
+host.parse_dca_request("DCA another $300 of ETH")
+host.preview_dca(
+    "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456"
+)
+```
+
+DCA previews require amount, asset, chain, schedule, source, and destination. Missing details are returned for clarification rather than inferred. A complete preview remains `approval_state=required` and `execution_available=false`.
+
+## Optional Zerion API adapter
+
+The package includes an opt-in, read-only adapter for the wallet positions and transactions endpoints. Configure `ZerionAPIConfig` with an API key supplied by your own secret manager; do not paste keys into source, fixtures, prompts, or issue reports. The adapter returns per-asset holdings and a mapped transaction ledger; it does not provide execution capabilities. See [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+
+The adapter depends on the endpoint contract and access permitted by your Zerion account. It is not enabled by the default fixture or MCP configuration.
+
+### Enabling the Zerion source for the host and MCP server
+
+The host and `zpm-mcp` read the source from the environment at startup. Both variables are required; setting only one is a configuration error, and the server exits with a message that names the missing variable and never echoes the key.
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `ZERION_API_KEY` | yes | Read-only Zerion API key from your secret manager |
+| `ZERION_WALLET_ADDRESS` | yes | The one wallet address to observe |
+| `ZERION_CHAIN` | no | Label stored on the snapshot; defaults to `multi-chain` |
+| `ZPM_FIXTURE_PATH` | no | Local fixture used only when the Zerion source is not enabled |
 
 ```bash
-uv sync --extra test --extra mcp
-uv run pytest -q
+export ZERION_API_KEY=$(cat ~/secrets/zerion-api-key)   # never paste the value inline
+export ZERION_WALLET_ADDRESS=0xYourWalletAddress
+.venv/bin/zpm-mcp
 ```
 
-Every route, including the `pip`-only path and troubleshooting, is in [`START-HERE.md`](START-HERE.md).
+When enabled, `get_portfolio_snapshot` returns `source.kind = "zerion_api"` with real per-asset holdings and a transaction ledger mapped from Zerion's `trade`, `send`, and `receive` operation types. `get_pnl` computes basis from observed buy transactions per asset; an asset with no observed buy reports a missing acquisition basis rather than an invented one. If the API rejects the key, rate-limits, hits a pagination fault, or fails, the tools return `status: "error"` with a typed `error.kind` and `fallback: "none"`. The fixture is never served in place of a failed API call.
 
-## See it run
+Python callers can do the same without environment variables:
 
-The demo runs on a fixture wallet. No API key needed. It shows a portfolio snapshot, an explainable PnL, and a DCA chat that stops at approval.
+```python
+from scout_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager.zerion_api import ZerionAPIConfig, ZerionAPIReader, ZerionWalletReader
 
-```bash
-uv run --project . demo/zerion-portfolio-agent/server.py
+reader = ZerionWalletReader(ZerionAPIReader(ZerionAPIConfig(api_key=key_from_secret_manager)), wallet)
+host = ReadOnlyHost(reader)
 ```
-
-Open `http://127.0.0.1:8787`.
-
-![Scout demo: snapshot, PnL with paid, worth now and return, this week's buy window, alerts, and a DCA proposal that stops at approval](docs/zerion-portfolio-demo-screenshot.png)
-
-Full walkthrough: [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md).
-
-## What Scout computes
-
-Ask "What's the PnL, Scout?" and it answers with cost basis and current value, not a guess.
-
-- Cost basis: 1 ETH bought for $2,000 on Aug 3, 2026.
-- Current value: $2,250 in the Sept 3, 2026 snapshot.
-- Result: +12.5%, current value minus basis minus fees.
-
-Ask "DCA $300 into ETH, weekly" and Scout drafts a complete proposal: asset, amount, chain, schedule. Status: approval required.
-
-## Where it stops
-
-Execution boundary: not implemented in this host.
-
-No trade button. No signing. No sending funds.
-
-Execution is optional and coming: Scout will DCA for you or just alert you, your choice.
-
-Full boundary and reporting: [`SECURITY.md`](SECURITY.md), [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md).
-
-## Optional: real wallet data through the Zerion API
-
-Scout can also read one real wallet's holdings and transaction ledger through a read-only Zerion API adapter, instead of the fixture. It still can't sign, submit, or execute anything. Set `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` from your own secret manager (never paste a key inline), and Scout switches from the fixture to your wallet. Full setup, including the required environment variables, is in [`START-HERE.md`](START-HERE.md).
 
 ### Optional MCP server
 
-Run it directly, without a plugin host: `uv run --extra mcp zpm-mcp`.
+```bash
+.venv/bin/pip install -e '.[mcp]'
+.venv/bin/zpm-mcp
+```
 
-Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, `check_alerts`. No wallet, signing, submission, or execution tool exists on this server.
+Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, `check_alerts`. The default remains fixture-backed and offline. Set `ZPM_FIXTURE_PATH` to use another local fixture, or set both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` to observe one real wallet read-only (see above). `analyze_asset` / `dca_windows` use fixture price history unless documented otherwise. Alerts are local on-demand files, not channel push. No wallet connect UX, signing, submission, execution, or settlement-verification tool is registered.
 
-`analyze_asset` reports SMA/EMA/RSI/drawdown for one held asset, with a heuristic disclosure attached. `dca_windows` classifies the current entry window for one asset and carries the line "This is analysis, not financial advice." `set_alert` stores a user-chosen price-threshold rule locally; `check_alerts` evaluates stored rules on demand and carries the same "This is analysis, not financial advice." line. None of the four executes, schedules itself, or runs in the background.
+## Install as a plugin
 
-Run the full observe-through-alert chain unattended with [`skills/watch/SKILL.md`](skills/watch/SKILL.md), which fits a Claude Code `/loop` tick.
+This repository is also a Claude Code plugin, with an Agent Skills-compatible Codex layout, for read-only portfolio intelligence. Cursor and other MCP hosts attach via stdio (`.mcp.json`). Every install route is documented in [`START-HERE.md`](START-HERE.md).
 
-## More
+## Documentation
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): how the boundary holds
+- [`CLAIMS.md`](CLAIMS.md): what is true today (LinkedIn-safe)
+- [`AGENTS.md`](AGENTS.md): short map for coding agents
+- [`START-HERE.md`](START-HERE.md): install and first use
+- [`SECURITY.md`](SECURITY.md): security boundary and reporting guidance
+- [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md): data handling and API-adapter considerations
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): runtime boundary
+- [`docs/SHOW-ME.md`](docs/SHOW-ME.md): request and preview flow
 - [`CHANGELOG.md`](CHANGELOG.md): release history
 - [`SUPPORT.md`](SUPPORT.md): questions and issue reports
-- [`LICENSE.md`](LICENSE.md): license
+
+## Status
+
+Version `0.3.0` is an early release: fixture-backed functionality, a read-only host, optional analytics and local alerts, an optional read-only Zerion adapter, and an optional read-only MCP server. Treat API-backed observations as external data with freshness, availability, and authorization limits.
