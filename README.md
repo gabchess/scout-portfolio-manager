@@ -24,6 +24,14 @@ python3.11 -m venv .venv
 
 The fixture contains 1 ETH bought for $2,000 and valued at $2,250, producing a transparent $250 unrealized gain. Fixture values are examples, not live market data.
 
+## Demo
+
+A browser demo lives at `demo/zerion-portfolio-agent/`, a small stdlib-only Python server plus a static page that renders this repo's agent loop: portfolio snapshot, explainable PnL, and a DCA chat that ends at a preview a human still approves. It runs entirely on the fixture wallet. No Zerion API key is needed.
+
+![Zerion Portfolio Agent demo, dashboard with portfolio snapshot, PnL, and a completed DCA preview showing approval_state required and execution_available false](docs/zerion-portfolio-demo-screenshot.png)
+
+See [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md) for run instructions.
+
 ## Python API
 
 ```python

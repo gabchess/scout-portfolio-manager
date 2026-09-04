@@ -7,9 +7,17 @@ const usd = (n) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 const esc = (s) =>
-  String(s).replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  }[c]));
+  String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c],
+  );
 
 async function getJSON(path) {
   const res = await fetch(path);
@@ -31,13 +39,15 @@ function renderSnapshot(data) {
   const el = $("#snapshot-body");
   if (data.status !== "ok") {
     el.innerHTML = `<p class="placeholder">Snapshot unavailable: ${esc(
-      data.error?.message || data.error || "unknown error"
+      data.error?.message || data.error || "unknown error",
     )}</p>`;
     return;
   }
   const s = data.snapshot;
   $("#source-badge").textContent =
-    s.source.kind === "fixture" ? "FIXTURE DATA" : esc(s.source.kind).toUpperCase();
+    s.source.kind === "fixture"
+      ? "FIXTURE DATA"
+      : esc(s.source.kind).toUpperCase();
 
   const total = s.holdings.reduce((acc, h) => acc + h.value_usd, 0);
 
@@ -45,11 +55,11 @@ function renderSnapshot(data) {
     .map(
       (h) => `<tr>
         <td><span class="asset-cell"><span class="asset-dot">${esc(
-          h.asset.slice(0, 3)
+          h.asset.slice(0, 3),
         )}</span>${esc(h.asset)}</span></td>
         <td class="num">${h.quantity}</td>
         <td class="num">${usd(h.value_usd)}</td>
-      </tr>`
+      </tr>`,
     )
     .join("");
 
@@ -62,7 +72,7 @@ function renderSnapshot(data) {
         <td class="num">${usd(t.value_usd)}</td>
         <td class="num">${usd(t.fee_usd)}</td>
         <td>${esc(t.occurred_at.slice(0, 10))}</td>
-      </tr>`
+      </tr>`,
     )
     .join("");
 
@@ -94,7 +104,7 @@ function renderPnl(data) {
   const el = $("#pnl-body");
   if (data.status !== "ok") {
     el.innerHTML = `<p class="placeholder">PnL unavailable: ${esc(
-      data.error?.message || data.error || "unknown error"
+      data.error?.message || data.error || "unknown error",
     )}</p>`;
     return;
   }
@@ -120,19 +130,29 @@ function renderPnl(data) {
       <div class="formula"><b>How this was computed:</b> ${esc(r.formula)}
         &nbsp;·&nbsp; basis from observed buy transactions, never inferred
         &nbsp;·&nbsp; valued at ${esc(r.valuation_at)}</div>
-      ${r.warnings.length ? `<div class="callout callout-question">${esc(r.warnings.join("; "))}</div>` : ""}`
+      ${r.warnings.length ? `<div class="callout callout-question">${esc(r.warnings.join("; "))}</div>` : ""}`,
     )
-    .join("<hr style='border:none;border-top:1px solid #1a2233;margin:14px 0'/>");
+    .join(
+      "<hr style='border:none;border-top:1px solid var(--border);margin:14px 0'/>",
+    );
 
   const unknown = data.unknown.length
     ? `<div class="callout callout-question">${esc(data.unknown.join("; "))}</div>`
     : "";
-  el.innerHTML = blocks + unknown || `<p class="placeholder">No PnL results.</p>`;
+  el.innerHTML =
+    blocks + unknown || `<p class="placeholder">No PnL results.</p>`;
 }
 
 /* ---------- DCA agent (propose / approve) ---------- */
 
-const FIELD_ORDER = ["asset", "amount_usd", "chain", "schedule", "source", "destination"];
+const FIELD_ORDER = [
+  "asset",
+  "amount_usd",
+  "chain",
+  "schedule",
+  "source",
+  "destination",
+];
 
 function intentGrid(intent, missing) {
   const cells = FIELD_ORDER.map((name) => {
@@ -140,7 +160,7 @@ function intentGrid(intent, missing) {
     const isMissing = missing.includes(name);
     return `<div class="field ${isMissing ? "field-missing" : ""}">
       <div class="k">${esc(name.replace("_", " "))}</div>
-      <div class="v">${isMissing ? "missing — will ask" : esc(name === "amount_usd" ? usd(val) : val)}</div>
+      <div class="v">${isMissing ? "missing, will ask" : esc(name === "amount_usd" ? usd(val) : val)}</div>
     </div>`;
   }).join("");
   return `<div class="intent-grid">${cells}</div>`;
@@ -200,7 +220,9 @@ async function runDca(text) {
     return;
   }
   const previewRes =
-    parseRes.status === "ready" ? await postJSON("/api/dca/preview", { text }) : null;
+    parseRes.status === "ready"
+      ? await postJSON("/api/dca/preview", { text })
+      : null;
   renderDca(parseRes, previewRes);
 }
 

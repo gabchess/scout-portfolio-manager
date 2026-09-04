@@ -3,13 +3,14 @@
 A self-contained, fixture-backed demo UI for the read-only portfolio
 intelligence in this repository. One page shows the whole agent loop:
 
-1. **Portfolio snapshot** (boundary: *observe*) — holdings and the transaction
+1. **Portfolio snapshot** (boundary: *observe*): holdings and the transaction
    ledger from the synthetic fixture at `fixtures/portfolio.json`.
-2. **Explainable USD PnL** (boundary: *calculate*) — realized/unrealized/total
-   with the formula, basis provenance, and confidence shown, not just a number.
-3. **DCA agent** (boundary: *propose/approve*) — type a natural-language DCA
-   request. Missing details produce a clarification question (never a guess);
-   a complete request produces a preview with `approval_state=required` and
+2. **Explainable USD PnL** (boundary: *calculate*): realized, unrealized, and
+   total, with the formula, basis provenance, and confidence shown, not just
+   a number.
+3. **DCA agent** (boundary: *propose/approve*): type a natural-language DCA
+   request. Missing details produce a clarification question, never a guess.
+   A complete request produces a preview with `approval_state=required` and
    `execution_available=false`.
 
 The demo is a thin window onto `zerion_portfolio_manager.host.ReadOnlyHost`.
@@ -23,28 +24,42 @@ It adds no portfolio logic and no execution capability of any kind.
   no investment advice.
 - The demo server exposes only four read-only endpoints mirroring the host
   tools; there is no execute/sign/submit route to call.
-- Runs entirely offline on the synthetic fixture. `ZERION_API_KEY` is **not**
-  required and is never read by the demo. Fixture values are examples, not
-  live market data.
+- Runs entirely offline on the synthetic fixture. It makes no live Zerion
+  API call. `ZERION_API_KEY` is **not** required and is never read by the
+  demo. Fixture values are examples, not live market data.
 
 ## Run it
 
-From the repository root (Python 3.11+):
+From the repository root, with [`uv`](https://docs.astral.sh/uv/) installed:
 
 ```bash
-python3 -m venv .venv
+uv run --project . demo/zerion-portfolio-agent/server.py
+```
+
+`uv run` resolves the project's one dependency, `pydantic>=2.5`, from
+`pyproject.toml`/`uv.lock` and runs the server in that environment. No
+manual venv or install step is needed.
+
+Then open http://127.0.0.1:8787.
+
+If port 8787 is taken, pick another:
+`DEMO_PORT=8899 uv run --project . demo/zerion-portfolio-agent/server.py`.
+
+### Without uv
+
+Python 3.11+ is required. A bare `python3` on some machines resolves to an
+older interpreter that lacks PEP 660 support, which `pip install -e` needs:
+
+```bash
+python3.11 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/python demo/zerion-portfolio-agent/server.py
 ```
 
-Then open http://127.0.0.1:8787.
-
-If port 8787 is taken, pick another: `DEMO_PORT=8899 .venv/bin/python demo/zerion-portfolio-agent/server.py`.
-
 (Any environment where the package's one dependency, `pydantic>=2.5`, is
-importable works — the server adds `src/` to `sys.path`, so a plain
+importable works. The server adds `src/` to `sys.path`, so a plain
 `pip install 'pydantic>=2.5'` followed by
-`python3 demo/zerion-portfolio-agent/server.py` also runs.)
+`python3.11 demo/zerion-portfolio-agent/server.py` also runs.)
 
 ## Things to try
 
@@ -77,4 +92,4 @@ importable works — the server adds `src/` to `sys.path`, so a plain
 | `POST /api/dca/parse` `{"text": …}` | `parse_dca_request(text)` |
 | `POST /api/dca/preview` `{"text": …}` | `preview_dca(text)` |
 
-Anything else — including any execute, sign, or submit path — returns 404.
+Anything else returns 404, including any execute, sign, or submit path.

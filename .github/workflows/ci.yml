@@ -22,7 +22,7 @@ jobs:
       - name: Install package and quality tools
         run: python -m pip install -e '.[test,quality,mcp]'
       - name: Ruff
-        run: ruff check scripts tests/test_quality_gates.py
+        run: ruff check scripts tests/test_quality_gates.py demo
       - name: Mypy
         run: mypy
       - name: Tests
