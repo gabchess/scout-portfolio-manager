@@ -22,9 +22,9 @@ The package contains a fake execution adapter for isolated domain/test behavior;
 documentation. `GET /wallets/{addr}/positions/` takes no pagination parameters and returns
 every position in one call. `GET /wallets/{addr}/transactions/` paginates: the reader
 requests `page[size]=100` and follows `links.next` until the API stops returning a next
-cursor, bounded by `ZerionAPIReader.MAX_PAGES` (20). Hitting the page cap while a next
-cursor is still present, or receiving a malformed or repeated cursor, raises
-`ZerionAPIPaginationError` rather than silently truncating the ledger. NFT list links (`ResponseManyLinks`) are `self`-only and are never followed. Do not send `filter[min_mined_at]` here (epoch-ms query vs ISO response). HTTP 429 has no `Retry-After` in OpenAPI; only positions 503 documents it.
+cursor, bounded by `ZerionAPIConfig.max_pages` (default 20). Hitting the page cap while a
+next cursor is still present, or receiving a malformed or repeated cursor, raises
+`ZerionAPIPaginationError` rather than silently truncating the ledger. NFT list links (`ResponseManyLinks`) are `self`-only and are never followed. Do not send `filter[min_mined_at]` here (epoch-ms query vs ISO response). HTTP 429 has no `Retry-After` in the OpenAPI contract, but the reader parses one anyway when the response actually carries it (RFC 6585 defines the header for 429; undocumented is not the same as absent), and leaves `retry_after_seconds=None` otherwise. Only positions 503 documents `Retry-After` in the contract itself.
 
 ## Tool versioning
 
