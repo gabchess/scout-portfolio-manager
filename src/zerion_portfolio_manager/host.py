@@ -324,7 +324,7 @@ class ReadOnlyHost:
         )
         return {
             "status": "preview_ready",
-            "boundary": "preview",
+            "boundary": "approve",
             "preview_id": preview.preview_id,
             "intent": intent.model_dump(mode="json"),
             "missing": [],
