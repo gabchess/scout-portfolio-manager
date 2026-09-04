@@ -15,7 +15,9 @@ from zerion_portfolio_manager.zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIError,
     ZerionAPIPaginationError,
+    ZerionAPIRateLimitError,
     ZerionAPIServerError,
+    ZerionAPITransportError,
 )
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
@@ -184,8 +186,9 @@ class _FailingReader:
 @pytest.mark.parametrize(
     "exc, expected_kind",
     [
-        (ZerionAPIError("missing", status=404), "api"),
-        (ZerionAPIServerError("boom", status=503), "retry"),
+        (ZerionAPIError("missing", status=404), "not_found"),
+        (ZerionAPIError("bad request", status=400), "api"),
+        (ZerionAPIServerError("boom", status=503), "server"),
         (ZerionAPIPaginationError("bad cursor"), "pagination"),
     ],
 )
@@ -193,6 +196,31 @@ def test_observe_error_maps_new_error_taxonomy_kinds(exc, expected_kind):
     result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
     assert result["status"] == "error"
     assert result["error"]["kind"] == expected_kind
+
+
+def test_observe_error_not_found_kind():
+    exc = ZerionAPIError("Zerion API returned HTTP 404", status=404)
+    result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
+    assert result["status"] == "error"
+    assert result["error"]["kind"] == "not_found"
+    assert result["error"]["http_status"] == 404
+
+
+@pytest.mark.parametrize(
+    "exc, expected_retryable",
+    [
+        (ZerionAPIRateLimitError("limited", status=429), True),
+        (ZerionAPIServerError("boom", status=503), True),
+        (ZerionAPITransportError("dropped"), True),
+        (ZerionAPIAuthError("denied", status=401), False),
+        (ZerionAPIPaginationError("bad cursor"), False),
+        (ZerionAPIError("missing", status=404), False),
+        (ZerionAPIError("bad request", status=400), False),
+    ],
+)
+def test_observe_error_retryable_flag(exc, expected_retryable):
+    result = ReadOnlyHost(_FailingReader(exc)).get_portfolio_snapshot()
+    assert result["error"]["retryable"] is expected_retryable
 
 
 def test_observe_error_logged_emits_structured_log_and_increments_counter(caplog):
