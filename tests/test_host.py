@@ -93,7 +93,7 @@ def test_preview_dca_blocks_incomplete_request(host: ReadOnlyHost):
     assert "preview_id" not in result
 
 
-def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost):
+def test_preview_dca_boundary_is_approve(host: ReadOnlyHost):
     result = host.preview_dca(
         "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456",
         expected_output=0.13,
@@ -103,7 +103,7 @@ def test_preview_dca_requires_approval_and_refuses_execution(host: ReadOnlyHost)
         max_fee_usd=5.0,
     )
     assert result["status"] == "preview_ready"
-    assert result["boundary"] == "preview"
+    assert result["boundary"] == "approve"
     assert isinstance(result["preview_id"], str) and result["preview_id"]
     assert result["preview_id"] == result["preview"]["preview_id"]
     assert result["approval_state"] == "required"
