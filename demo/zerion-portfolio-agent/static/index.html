@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Portfolio Intel — Zerion portfolio-manager agent demo</title>
+  <title>Portfolio Intel: Zerion portfolio-manager agent demo</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">◈</div>
+      <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
         <h1>Portfolio Intel</h1>
         <p>Zerion portfolio-manager agent · tech demo</p>
@@ -28,7 +28,7 @@
     <span class="arrow">→</span>
     <span class="stage stage-on" data-stage="propose">propose</span>
     <span class="arrow">→</span>
-    <span class="stage stage-on" data-stage="approve">approve</span>
+    <span class="stage stage-pending" data-stage="approve" title="No approval record exists yet in this host">approve</span>
     <span class="arrow arrow-cut">⇸</span>
     <span class="stage stage-off" title="Not available in this host">execute 🔒</span>
     <span class="arrow arrow-cut">⇸</span>
@@ -68,8 +68,8 @@
         <div class="card-body">
           <p class="agent-hint">
             Describe a dollar-cost-averaging plan in plain language. Missing
-            details produce a clarification question — never a guess. A complete
-            request produces a <em>preview only</em>.
+            details produce a clarification question. The agent never guesses.
+            A complete request produces a <em>preview only</em>.
           </p>
           <form id="dca-form" autocomplete="off">
             <div class="input-row">
@@ -102,7 +102,7 @@
           <div class="no-execute">
             <span class="lock">🔒</span>
             No execute button exists. This host cannot connect a wallet, sign,
-            or submit a transaction — approval and execution belong to a
+            or submit a transaction. Approval and execution belong to a
             separately authorized rail.
           </div>
         </div>
@@ -111,6 +111,7 @@
   </main>
 
   <footer class="safety-strip">
+    <p class="built-on">Built on the Zerion API.</p>
     <code>observe ≠ calculate ≠ propose ≠ approve ≠ execute ≠ verify</code>
     <span class="dot">·</span> No wallet connect
     <span class="dot">·</span> No signing

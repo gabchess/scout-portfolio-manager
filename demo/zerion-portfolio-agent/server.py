@@ -58,6 +58,8 @@ class DemoHandler(SimpleHTTPRequestHandler):
         if length <= 0 or length > MAX_BODY_BYTES:
             raise ValueError("request body must be non-empty JSON under 16 KiB")
         payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("request body must be a JSON object")
         text = payload.get("text")
         if not isinstance(text, str) or not text.strip():
             raise ValueError("field 'text' must be a non-empty string")
@@ -69,7 +71,8 @@ class DemoHandler(SimpleHTTPRequestHandler):
             self._send_json(HOST.get_portfolio_snapshot())
             return
         if parsed.path == "/api/pnl":
-            asset = (parse_qs(parsed.query).get("asset") or [None])[0]
+            asset_values = parse_qs(parsed.query).get("asset")
+            asset: str | None = asset_values[0] if asset_values else None
             self._send_json(HOST.get_pnl(asset=asset))
             return
         if parsed.path.startswith("/api/"):
@@ -109,7 +112,7 @@ class DemoHandler(SimpleHTTPRequestHandler):
 def main() -> None:
     port = int(os.environ.get("DEMO_PORT", "8787"))
     server = ThreadingHTTPServer(("127.0.0.1", port), DemoHandler)
-    print(f"Zerion portfolio-manager agent demo (fixture-backed, read-only)")
+    print("Zerion portfolio-manager agent demo (fixture-backed, read-only)")
     print(f"Fixture: {FIXTURE_PATH}")
     print(f"Serving on http://127.0.0.1:{port}  (Ctrl-C to stop)")
     server.serve_forever()
