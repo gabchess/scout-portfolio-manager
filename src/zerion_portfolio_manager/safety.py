@@ -1,4 +1,5 @@
 import math
+import uuid
 from datetime import datetime
 from typing import Literal, Optional
 
@@ -23,6 +24,7 @@ class DcaPreview(BaseModel):
     schedule: str
     max_fee_usd: Optional[float] = Field(default=None, ge=0)
     approval_state: Literal["required"]
+    preview_id: str
     failure_behavior: str
 
     @field_validator("amount_usd", "expected_output", "fees_usd", "slippage_pct", "max_fee_usd")
@@ -88,6 +90,7 @@ def build_preview(
         schedule=intent.schedule,
         max_fee_usd=max_fee_usd,
         approval_state="required",
+        preview_id=str(uuid.uuid4()),
         failure_behavior=(
             "If the quote expires or settlement fails, do not report success; "
             "surface the failure for review."

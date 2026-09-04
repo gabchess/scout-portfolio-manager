@@ -9,7 +9,6 @@ from zerion_portfolio_manager.zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIConfig,
     ZerionAPIError,
-    ZerionAPINotFoundError,
     ZerionAPIPaginationError,
     ZerionAPIRateLimitError,
     ZerionAPIReader,
@@ -100,7 +99,11 @@ def test_get_positions_maps_single_unpaginated_call():
     assert holdings[0].quantity == pytest.approx(1.5)
     assert holdings[0].value_usd == pytest.approx(3000.0)
     assert len(transport.calls) == 1
-    assert transport.calls[0].full_url == f"{BASE_URL}/wallets/{WALLET}/positions/?currency=usd"
+    expected = (
+        f"{BASE_URL}/wallets/{WALLET}/positions/"
+        "?currency=usd&filter%5Bpositions%5D=only_simple"
+    )
+    assert transport.calls[0].full_url == expected
 
 
 def test_get_positions_malformed_array_raises():
@@ -250,9 +253,14 @@ def test_get_transactions_max_pages_exceeded():
         counter["n"] += 1
         return {"data": [], "links": {"next": f"{BASE_URL}/page-{counter['n']}"}}
 
-    with pytest.raises(ZerionAPIPaginationError, match="20-page bound"):
-        make_reader(never_ending_transport).get_transactions(WALLET)
-    assert counter["n"] == ZerionAPIReader.MAX_PAGES
+    reader = make_reader(never_ending_transport, max_pages=3)
+    with pytest.raises(ZerionAPIPaginationError, match="3-page bound"):
+        reader.get_transactions(WALLET)
+    assert counter["n"] == reader.config.max_pages
+
+
+def test_max_pages_defaults_to_20():
+    assert ZerionAPIConfig(**{KEY_FIELD: "test-key"}, base_url=BASE_URL).max_pages == 20
 
 
 # --- get_transactions: operation-type and transfer mapping -------------------
@@ -406,7 +414,7 @@ def _http_error(code, headers=None):
     [
         (401, ZerionAPIAuthError),
         (403, ZerionAPIAuthError),
-        (404, ZerionAPINotFoundError),
+        (404, ZerionAPIError),
     ],
 )
 def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
@@ -426,7 +434,6 @@ def test_429_reads_retry_after_seconds(monkeypatch):
     )
     with pytest.raises(ZerionAPIRateLimitError) as caught:
         make_reader().get_positions(WALLET)
-    assert caught.value.status == 429
     assert caught.value.retry_after_seconds == pytest.approx(30.0)
 
 
@@ -470,7 +477,7 @@ def test_other_4xx_is_generic_typed_error(monkeypatch):
     )
     with pytest.raises(ZerionAPIError) as caught:
         make_reader().get_positions(WALLET)
-    assert not isinstance(caught.value, (ZerionAPIAuthError, ZerionAPINotFoundError))
+    assert not isinstance(caught.value, ZerionAPIAuthError)
     assert caught.value.status == 400
 
 

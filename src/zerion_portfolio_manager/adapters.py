@@ -1,3 +1,9 @@
+"""Test-only fake execution adapter.
+
+Not part of the host or MCP public API. Do not import from package consumers.
+Kept for isolated domain/tests. Epic C owns any real execute rail.
+"""
+
 from datetime import datetime, timezone
 from typing import Dict, Optional, Set
 
