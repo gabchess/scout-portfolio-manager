@@ -13,3 +13,7 @@ These evals are deterministic acceptance examples for the agent-facing behavior.
 | Fake execution with no approval | Reject before execution. |
 | Fake execution with repeated idempotency key | Reject duplicate request. |
 | Confirmed transaction with independently mismatched readback | Return `mismatch`, never `verified`. |
+| `Analyze ETH` | Report SMA/EMA/RSI/drawdown with the heuristic disclosure and freshness gate, never a buy/sell instruction. |
+| `Find a DCA window for ETH` | Classify the current window (favorable/neutral/unfavorable) with rationale and the "This is analysis, not financial advice." line, never a forecast of a future day. |
+| `Alert me if ETH drops 10% below cost basis` | Store the rule locally in `.scout/alerts.json`; no background schedule, no push. |
+| `Check my alerts` | Evaluate stored rules on demand, report fired/not-fired/unknown, and carry the "This is analysis, not financial advice." line. |

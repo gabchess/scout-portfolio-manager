@@ -7,6 +7,7 @@
 - No component connects a wallet, signs, submits, or executes a transaction.
 - The optional Zerion adapter performs a read-only aggregate portfolio request; it does not expose an execution rail.
 - A preview is a proposal and must not be represented as a completed transaction.
+- `analyze_asset`, `dca_windows`, `set_alert`, and `check_alerts` are read-only; their output is heuristic, not investment advice.
 
 ## Secrets and data
 

@@ -71,6 +71,8 @@ Execution boundary: not implemented in this host.
 
 No trade button. No signing. No sending funds.
 
+Execution is optional and coming: Scout will DCA for you or just alert you, your choice.
+
 Full boundary and reporting: [`SECURITY.md`](SECURITY.md), [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md).
 
 ## Optional: real wallet data through the Zerion API
@@ -82,6 +84,10 @@ Scout can also read one real wallet's holdings and transaction ledger through a 
 Run it directly, without a plugin host: `uv run --extra mcp zpm-mcp`.
 
 Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, `check_alerts`. No wallet, signing, submission, or execution tool exists on this server.
+
+`analyze_asset` reports SMA/EMA/RSI/drawdown for one held asset, with a heuristic disclosure attached. `dca_windows` classifies the current entry window for one asset and carries the line "This is analysis, not financial advice." `set_alert` stores a user-chosen price-threshold rule locally; `check_alerts` evaluates stored rules on demand and carries the same "This is analysis, not financial advice." line. None of the four executes, schedules itself, or runs in the background.
+
+Run the full observe-through-alert chain unattended with [`skills/watch/SKILL.md`](skills/watch/SKILL.md), which fits a Claude Code `/loop` tick.
 
 ## Video
 

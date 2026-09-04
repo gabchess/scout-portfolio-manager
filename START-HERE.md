@@ -86,7 +86,7 @@ To run the optional MCP server directly, without a plugin host:
 uv run --extra mcp zpm-mcp
 ```
 
-The server exposes only `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to point at another local fixture.
+The server exposes `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, and `check_alerts`. Set `ZPM_FIXTURE_PATH` to point at another local fixture.
 
 ## Try the browser demo (any route)
 
@@ -127,8 +127,18 @@ host = ReadOnlyHost(reader)
 
 Full data-handling detail: [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md).
 
+## Run it on a loop
+
+[`skills/watch/SKILL.md`](skills/watch/SKILL.md) chains all read-only tools into one
+on-demand pass, observe through alert, and writes a static HTML report. Each run is a
+fresh process; alert rules persist in `.scout/alerts.json` on disk, not in memory. This
+is the shape built for a Claude Code `/loop` tick. See that file for the exact command
+and output contract.
+
 ## Boundaries
 
 `observe != calculate != propose != approve != execute != verify`. DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is `approval_state=required` and `execution_available=false`; wallet handoff and execution are a future product direction, not a current capability. See [`docs/SHOW-ME.md`](docs/SHOW-ME.md) for the full request-and-preview flow.
+
+Execution is optional and coming: Scout will DCA for you or just alert you, your choice. Until then, `dca_windows` and `check_alerts` only classify and report: "This is analysis, not financial advice."
 
 Never add API keys, private keys, seed phrases, or wallet secrets to this repository, prompts, fixtures, or logs. For the full data and security boundary, read [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md). If installation or discovery fails, continue with [`SUPPORT.md`](SUPPORT.md).

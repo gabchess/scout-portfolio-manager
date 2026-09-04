@@ -4,6 +4,8 @@
 
 The default configuration reads the synthetic JSON fixture at `fixtures/portfolio.json`. The local host and MCP server do not persist user data. They do not call Zerion or an execution provider unless an operator separately configures the optional API adapter.
 
+`fixtures/price_history.json`, read by `analyze_asset` and `dca_windows`, is synthetic, the same status as `fixtures/portfolio.json`. `.scout/alerts.json`, written by `set_alert` and read by `check_alerts`, is local-only, never transmitted, and contains no secrets, only the asset, kind, and threshold values a user chose.
+
 ## Optional Zerion adapter
 
 `ZerionAPIReader` makes a read-only request for one wallet's positions and transactions when explicitly configured. The adapter receives the wallet address and API credential supplied by its host, and returns real per-asset holdings and a mapped transaction ledger. It does not sign, submit, or execute transactions.
