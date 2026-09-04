@@ -39,16 +39,11 @@ This policy is the smallest reasonable default for the current single-consumer s
 is a proposal from this docs pass, not a policy validated against production tool
 consumers.
 
-## Execution-rail governance review
+## Execution-rail enforcement
 
-Ali (commerce-agents specialist) reviewed the safety and execution-rail boundary in this
-repo on 2026-09-03, grounded in the codebase and a local fork of
-`anthropics/commerce-agents`. The verdict: the stage separation holds in the harness, not
-only in the prompt. `ReadOnlyHost.call_tool` raises `PermissionError` by name for
-`execute`, `execute_dca`, `submit`, and `sign`, so no tool exists for a model to call past
-preview, and `DcaPreview.approval_state` is a pydantic `Literal`, checked at construction,
-not a string a caller can talk past. The review also names a gap for Epic C: approval is a
-label today, not a host-written record tied to who set it, and recommends building that
-record before any real execution adapter replaces the fake one. Full review:
-`Career Upgrade/Zerion/50-GOVERNANCE/ALI-EXECUTION-RAIL-REVIEW-2026-09-03.md` in the
-project vault.
+The stage separation is enforced in code, not only documented. `ReadOnlyHost.call_tool`
+raises `PermissionError` by name for `execute`, `execute_dca`, `submit`, and `sign`, so no
+tool exists for a caller to invoke past preview, and `DcaPreview.approval_state` is a
+pydantic `Literal`, checked at construction, not a string a caller can talk past. Known
+gap: approval is a label today, not a record of who set it; that record should exist
+before any real execution adapter replaces the fake one.
