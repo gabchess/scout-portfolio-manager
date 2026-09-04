@@ -31,9 +31,8 @@ unattended:
 
 - Never sign, submit, execute, route, or claim settlement of a transaction.
 - Never infer a chain, schedule, source wallet, destination wallet, amount, or asset.
-- Every indicator carries `"Heuristic indicators, not backtested; treat as descriptive,
-  not predictive."`. Every DCA-window and alert result carries `"This is analysis, not
-  financial advice."`.
+- Every indicator carries the disclosure: `"Heuristic indicators, not backtested; treat as descriptive, not predictive."`
+- Every DCA-window and alert result carries the line: `"This is analysis, not financial advice."`
 - If price data is stale, say so. Never suppress an indicator or silently decide a
   fire/no-fire alert outcome on stale data.
 - `set_alert`/`check_alerts` never run in the background. This skill's own invocation is
