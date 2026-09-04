@@ -393,5 +393,5 @@ def _observe_error(exc: ZerionAPIError) -> Dict[str, Any]:
 def default_host(repo_root: Optional[Union[str, Path]] = None) -> ReadOnlyHost:
     if repo_root:
         return ReadOnlyHost(Path(repo_root) / "fixtures" / "portfolio.json")
-    packaged_fixture = files("zerion_portfolio_manager").joinpath("data/portfolio.json")
+    packaged_fixture = files("scout_portfolio_manager").joinpath("data/portfolio.json")
     return ReadOnlyHost(str(packaged_fixture))

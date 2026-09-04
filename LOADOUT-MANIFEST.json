@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "product": "portfolio-intel",
+  "product": "scout-portfolio",
   "version": "0.1.0",
   "default_source": "synthetic fixture",
   "optional_sources": ["read-only Zerion aggregate portfolio API"],

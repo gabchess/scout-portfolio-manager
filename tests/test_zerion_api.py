@@ -4,7 +4,7 @@ from urllib.error import HTTPError
 
 import pytest
 
-from zerion_portfolio_manager.zerion_api import (
+from scout_portfolio_manager.zerion_api import (
     EXPECTED_ZERION_API_HOST,
     ZerionAPIAuthError,
     ZerionAPIConfig,
@@ -419,7 +419,7 @@ def _http_error(code, headers=None):
 )
 def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen",
+        "scout_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(status)),
     )
     with pytest.raises(expected_exc) as caught:
@@ -429,7 +429,7 @@ def test_http_status_maps_to_typed_error(monkeypatch, status, expected_exc):
 
 def test_429_reads_retry_after_seconds(monkeypatch):
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen",
+        "scout_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(429, {"Retry-After": "30"})),
     )
     with pytest.raises(ZerionAPIRateLimitError) as caught:
@@ -439,7 +439,7 @@ def test_429_reads_retry_after_seconds(monkeypatch):
 
 def test_429_without_retry_after_leaves_it_none(monkeypatch):
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen",
+        "scout_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(429)),
     )
     with pytest.raises(ZerionAPIRateLimitError) as caught:
@@ -450,7 +450,7 @@ def test_429_without_retry_after_leaves_it_none(monkeypatch):
 @pytest.mark.parametrize("status", [500, 502])
 def test_5xx_without_retry_after_is_server_error(monkeypatch, status):
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen",
+        "scout_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(status)),
     )
     with pytest.raises(ZerionAPIServerError) as caught:
@@ -461,7 +461,7 @@ def test_5xx_without_retry_after_is_server_error(monkeypatch, status):
 
 def test_503_with_retry_after_is_server_error_with_retry_after(monkeypatch):
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen",
+        "scout_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(503, {"Retry-After": "5"})),
     )
     with pytest.raises(ZerionAPIServerError) as caught:
@@ -472,7 +472,7 @@ def test_503_with_retry_after_is_server_error_with_retry_after(monkeypatch):
 
 def test_other_4xx_is_generic_typed_error(monkeypatch):
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen",
+        "scout_portfolio_manager.zerion_api.urlopen",
         lambda request, timeout: (_ for _ in ()).throw(_http_error(400)),
     )
     with pytest.raises(ZerionAPIError) as caught:
@@ -485,7 +485,7 @@ def test_transport_timeout_is_typed_transport_error(monkeypatch):
     def raise_timeout(request, timeout):
         raise TimeoutError("timed out")
 
-    monkeypatch.setattr("zerion_portfolio_manager.zerion_api.urlopen", raise_timeout)
+    monkeypatch.setattr("scout_portfolio_manager.zerion_api.urlopen", raise_timeout)
     with pytest.raises(ZerionAPITransportError):
         make_reader().get_positions(WALLET)
 
@@ -502,7 +502,7 @@ def test_non_json_body_is_typed_transport_error(monkeypatch):
             return b"not json at all {"
 
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen", lambda *_args, **_kwargs: Response()
+        "scout_portfolio_manager.zerion_api.urlopen", lambda *_args, **_kwargs: Response()
     )
     with pytest.raises(ZerionAPITransportError):
         make_reader().get_positions(WALLET)
@@ -520,7 +520,7 @@ def test_non_object_json_body_is_typed_transport_error(monkeypatch):
             return json.dumps(["not", "an", "object"]).encode()
 
     monkeypatch.setattr(
-        "zerion_portfolio_manager.zerion_api.urlopen", lambda *_args, **_kwargs: Response()
+        "scout_portfolio_manager.zerion_api.urlopen", lambda *_args, **_kwargs: Response()
     )
     with pytest.raises(ZerionAPITransportError, match="non-object"):
         make_reader().get_positions(WALLET)

@@ -1,6 +1,6 @@
 """Thin local demo server for the Zerion portfolio-manager agent demo.
 
-Wraps zerion_portfolio_manager.host.ReadOnlyHost behind four read-only JSON
+Wraps scout_portfolio_manager.host.ReadOnlyHost behind four read-only JSON
 endpoints and serves the static front-end. Stdlib only; no new dependencies.
 
 Endpoints (all read-only; there is no execute/sign/submit endpoint):
@@ -31,7 +31,7 @@ FIXTURE_PATH = REPO_ROOT / "fixtures" / "portfolio.json"
 # as long as pydantic is importable.
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from zerion_portfolio_manager.host import ReadOnlyHost  # noqa: E402
+from scout_portfolio_manager.host import ReadOnlyHost  # noqa: E402
 
 HOST = ReadOnlyHost(FIXTURE_PATH)
 

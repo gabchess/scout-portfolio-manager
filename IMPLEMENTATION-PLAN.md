@@ -34,7 +34,7 @@ No real API calls, wallet connections, signatures, funds, credentials, seeds, pr
 ### ZPM-001 Contracts and fixture boundary
 
 - **Outcome:** Pydantic contracts represent portfolio snapshots, holdings, transactions, basis inputs, quote data, intents, receipts, and verification evidence.
-- **Owned surface:** `src/zerion_portfolio_manager/contracts.py`, `fixtures/`, contract tests.
+- **Owned surface:** `src/scout_portfolio_manager/contracts.py`, `fixtures/`, contract tests.
 - **Protected boundaries:** no secrets; fixture-shaped data must be labeled as such; read models cannot execute.
 - **Dependencies and inputs:** approved product contract and system design.
 - **Red evidence:** repository has no implementation yet; contract tests must fail before implementation.

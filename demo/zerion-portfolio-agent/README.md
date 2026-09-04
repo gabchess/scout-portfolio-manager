@@ -13,8 +13,12 @@ intelligence in this repository. One page shows the whole agent loop:
    A complete request produces a preview with `approval_state=required` and
    `execution_available=false`.
 
-The demo is a thin window onto `zerion_portfolio_manager.host.ReadOnlyHost`.
+The demo is a thin window onto `scout_portfolio_manager.host.ReadOnlyHost`.
 It adds no portfolio logic and no execution capability of any kind.
+
+Execution boundary: not implemented in this host. A DCA request ends at a
+complete, approval-required preview. Wallet handoff and execution are a
+future product direction, not a current capability.
 
 ## Safety boundary
 

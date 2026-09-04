@@ -1,4 +1,4 @@
-from zerion_portfolio_manager.verification import SettlementVerifier
+from scout_portfolio_manager.verification import SettlementVerifier
 
 
 def test_verifier_requires_independent_evidence_configuration():

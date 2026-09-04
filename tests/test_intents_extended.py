@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 
-from zerion_portfolio_manager.contracts import (
+from scout_portfolio_manager.contracts import (
     Holding,
     PortfolioSnapshot,
     SourceMetadata,
     Transaction,
 )
-from zerion_portfolio_manager.intents import read_intent
+from scout_portfolio_manager.intents import read_intent
 
 
 def snapshot():

@@ -15,7 +15,7 @@ data, without reading Python. One screen shows the whole boundary story:
    complete request produces a preview with `approval_state=required` and
    `execution_available=false`.
 
-The demo is a *window onto* `zerion_portfolio_manager.host.ReadOnlyHost` — it
+The demo is a *window onto* `scout_portfolio_manager.host.ReadOnlyHost` — it
 adds no new portfolio logic of its own.
 
 ## MVP (in scope)
