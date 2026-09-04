@@ -157,14 +157,19 @@ def test_host_error_kinds_are_typed():
             raise self.exc
 
     cases = [
-        (ZerionAPIAuthError("auth", status=403), "authorization", 403),
-        (ZerionAPIRateLimitError("slow down", status=429), "rate_limit", 429),
-        (ZerionAPITransportError("transport"), "transport", None),
-        (ZerionAPIError("malformed"), "api", None),
+        (ZerionAPIAuthError("auth", status=403), "authorization", 403, False),
+        (ZerionAPIRateLimitError("slow down", status=429), "rate_limit", 429, True),
+        (ZerionAPITransportError("transport"), "transport", None, True),
+        (ZerionAPIError("malformed"), "api", None, False),
     ]
-    for exc, kind, status in cases:
+    for exc, kind, status, retryable in cases:
         result = ReadOnlyHost(Failing(exc)).get_portfolio_snapshot()
-        assert result["error"] == {"kind": kind, "message": str(exc), "http_status": status}
+        assert result["error"] == {
+            "kind": kind,
+            "retryable": retryable,
+            "message": str(exc),
+            "http_status": status,
+        }
 
 
 def test_host_still_accepts_fixture_path_and_reader_objects():
