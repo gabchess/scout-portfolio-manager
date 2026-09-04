@@ -105,9 +105,9 @@ host = ReadOnlyHost(reader)
 
 Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`. The default remains fixture-backed and offline. Set `ZPM_FIXTURE_PATH` to use another local fixture, or set both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` to observe one real wallet read-only (see above). No wallet, signing, submission, execution, or settlement-verification tool is registered.
 
-## Claude Code plugin
+## Install as a plugin
 
-This repository is also a Claude Code plugin for read-only portfolio intelligence. Local installation and commands are documented in [`PLUGIN-START-HERE.md`](PLUGIN-START-HERE.md).
+This repository is also a Claude Code plugin, with an Agent Skills-compatible Codex layout, for read-only portfolio intelligence. Every install route (Claude Code plugin, Codex, or plain Python) is documented in [`START-HERE.md`](START-HERE.md).
 
 ## Documentation
 

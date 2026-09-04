@@ -52,6 +52,9 @@ def test_create_server_registers_only_read_tools(monkeypatch):
         "parse_dca_request",
         "preview_dca",
     ]
-    assert not any("execute" in name for name in registered)
+    banned = ("execute", "sign", "submit", "send", "transfer")
+    for tool_name in registered:
+        for word in banned:
+            assert word not in tool_name, f"{tool_name!r} looks like a write tool"
     payload = json.loads(registered["get_pnl"]())
     assert payload["results"][0]["unrealized_usd"] == 250.0

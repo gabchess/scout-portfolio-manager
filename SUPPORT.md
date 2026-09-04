@@ -2,10 +2,41 @@
 
 This is an early, community-oriented repository rather than a hosted service. No production support SLA or guaranteed response time is provided.
 
+## Stop-and-preserve-the-error rule
+
+Before changing anything, preserve the complete error text, the command that produced it, the package version (`python -c "import scout_portfolio_manager; print(scout_portfolio_manager.__version__)"` if available, or the installed plugin/pyproject version), and whether the default fixture or the live Zerion adapter was in use. Do not delete the fixture, reinstall the package, or reset the host as a first diagnostic step; each of those can destroy the evidence needed to tell a real regression from a local misconfiguration.
+
+## Named regressions by version
+
+### 0.1.0: bare `zpm-mcp` command fails with `ENOENT`
+
+`.mcp.json` launched a bare `zpm-mcp` command. Unless the repository's `.venv/bin` happened to already be on the launching shell's PATH, Claude Code failed to start the MCP server with `ENOENT`.
+
+**Fixed in 0.2.0.** `.mcp.json` now runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp`, which resolves the project and its `mcp` extra through `uv` alone.
+
+**Recovery:** upgrade to 0.2.0 or later. If you must stay on 0.1.0, ensure `uv` and the repository's `.venv/bin` are both on the PATH of the shell Claude Code launches from, or run the server manually:
+
+```bash
+.venv/bin/pip install -e '.[mcp]'
+.venv/bin/zpm-mcp
+```
+
+### 0.1.0: Zerion adapter exposed only an aggregate holding, no transaction ledger
+
+The 0.1.0 release's optional Zerion source returned a single synthetic aggregate holding, not real per-asset positions or a transaction history, and could not compute basis from observed transactions.
+
+**Fixed in 0.2.0.** The adapter now reads `GET /wallets/{addr}/positions/` and a mapped transaction ledger from `GET /wallets/{addr}/transactions/`, and `get_pnl` computes basis from each asset's observed buy transactions.
+
+**Recovery:** upgrade to 0.2.0 or later. There is no in-place migration; the 0.1.0 aggregate-only adapter is superseded, not configurable.
+
+## Open caveats (not a version-to-version regression)
+
+The `quantity` field shape on Zerion's positions and transactions responses (a bare float versus a `{"float": ...}` object) is unconfirmed against a real live payload as of this release. `_numeric_amount()` accepts both shapes defensively, but a live 429 rate limit was hit during development before this could be checked, and the one successful live transactions call used a wallet with zero items either way. If a live response fails to parse a `quantity` field, preserve the exact error and the (secret-scrubbed) response shape before opening an issue; see [`WHAT-BROKE.md`](WHAT-BROKE.md) for the full, current list of known limits.
+
 ## Before opening an issue
 
 - Reproduce with the default synthetic fixture where possible.
-- Include the command, Python version, package version, and a minimal error message.
+- Include the command, Python version, package version, and a minimal, complete error message.
 - Remove API keys, private keys, seed phrases, wallet addresses, and other personal data.
 - For API-backed behavior, note that the adapter is read-only and depends on the configured Zerion account and endpoint access.
 
