@@ -1,5 +1,7 @@
 # Architecture
 
+A read-only agent for one wallet. It watches, calculates, and proposes DCA plans. You approve. This document describes how that boundary holds, from observation through the point where a proposal stops and waits on you.
+
 ```text
 agent runtime / MCP client
   -> ReadOnlyHost (get_portfolio_snapshot | get_pnl | parse_dca_request | preview_dca)

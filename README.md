@@ -1,20 +1,41 @@
 # Scout
 
-Your agent should know what you own.
+A read-only agent for one wallet. It watches, calculates, and proposes DCA plans. You approve.
 
-A read-only portfolio intelligence plugin and Python package, built on the Zerion API, for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
+Scout is a Python package and Claude Code plugin built on the Zerion API. The default source is the synthetic fixture at `fixtures/portfolio.json`; an optional `ZerionAPIReader` can read one real wallet's holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
 
-The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's real per-asset holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
+## The problem
+
+> I bought the dip. I don't know what I paid, when, or on which chain.
+
+Scout shows your activity, where your money is, and your PnL if you ask.
+
+## "What's the PnL, Scout?"
+
+Scout answers with cost basis and current value, not a guess:
+
+- Cost basis: 1 ETH bought for $2,000 on Aug 3, 2026.
+- Current value: ETH at $2,250 in this snapshot (Sept 3, 2026).
+- Result: +12.5%, current value minus basis minus fees.
+
+The fixture at [`fixtures/portfolio.json`](fixtures/portfolio.json) backs these numbers by default. See [Quick start](#quick-start) to run it yourself.
+
+## "DCA $300 into ETH, weekly"
+
+Ask Scout for a DCA plan and it drafts a complete proposal: asset, amount, chain, and schedule.
+
+Status: approval required. Scout stops here.
+
+## Video
+
+A short video walkthrough covers the same two minutes: the problem, the PnL question, and the DCA proposal.
+
+<!-- TODO: link to video render once Colin's pass lands -->
+Provisional path: `video/out/ScoutVideo.mp4`
 
 ## Safety boundary
 
-This project does not connect to wallets, use or move funds, sign transactions, submit transactions, or provide investment advice. A preview is a proposal, not a completed transaction.
-
-The product keeps these stages distinct:
-
-`observe != calculate != propose != approve != execute != verify`
-
-No execution or signing tool is provided by the host or MCP server. Execution boundary: not implemented in this host. A DCA request ends at a complete, approval-required preview; wallet handoff and execution are a future product direction, not a current capability.
+Scout does not connect wallets, move funds, sign, submit, or execute transactions, or provide investment advice. A preview is a proposal, not a completed transaction. `observe != calculate != propose != approve != execute != verify`, and no execution or signing tool is registered on the host or MCP server. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how that boundary is enforced in code.
 
 ## Quick start
 
