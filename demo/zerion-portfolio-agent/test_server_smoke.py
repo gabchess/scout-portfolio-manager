@@ -89,6 +89,16 @@ def test_get_snapshot(running_server: ThreadingHTTPServer) -> None:
     assert result["snapshot"]["holdings"][0]["asset"] == "ETH"
 
 
+def test_get_snapshot_locator_is_relative_not_absolute(
+    running_server: ThreadingHTTPServer,
+) -> None:
+    result = _get_json(running_server, "/api/snapshot")
+    locator = result["snapshot"]["source"]["locator"]
+    assert locator == "fixtures/portfolio.json"
+    assert not Path(locator).is_absolute()
+    assert "/Users" not in locator
+
+
 def test_get_pnl(running_server: ThreadingHTTPServer) -> None:
     result = _get_json(running_server, "/api/pnl")
     assert result["status"] == "ok"

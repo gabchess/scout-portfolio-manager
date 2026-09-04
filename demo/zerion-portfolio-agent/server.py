@@ -38,6 +38,21 @@ HOST = ReadOnlyHost(FIXTURE_PATH)
 MAX_BODY_BYTES = 16 * 1024
 
 
+def _relativize_snapshot_locator(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Rewrite an absolute fixture path in the snapshot response to a repo-relative
+    one, so the demo UI never displays the host's home directory. Display-only: the
+    fixture is still read from the absolute FIXTURE_PATH."""
+    locator = payload.get("snapshot", {}).get("source", {}).get("locator")
+    if not locator:
+        return payload
+    try:
+        relative = str(Path(locator).relative_to(REPO_ROOT))
+    except ValueError:
+        relative = os.path.relpath(locator, REPO_ROOT)
+    payload["snapshot"]["source"]["locator"] = relative
+    return payload
+
+
 class DemoHandler(SimpleHTTPRequestHandler):
     """Static files from the demo directory plus the read-only JSON API."""
 
@@ -68,7 +83,7 @@ class DemoHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 (http.server API)
         parsed = urlparse(self.path)
         if parsed.path == "/api/snapshot":
-            self._send_json(HOST.get_portfolio_snapshot())
+            self._send_json(_relativize_snapshot_locator(HOST.get_portfolio_snapshot()))
             return
         if parsed.path == "/api/pnl":
             asset_values = parse_qs(parsed.query).get("asset")
