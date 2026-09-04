@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio Intel — Zerion portfolio-manager agent demo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">◈</div>
+      <div class="brand-text">
+        <h1>Portfolio Intel</h1>
+        <p>Zerion portfolio-manager agent · tech demo</p>
+      </div>
+    </div>
+    <div class="topbar-badges">
+      <span class="badge badge-readonly">READ-ONLY</span>
+      <span class="badge badge-fixture" id="source-badge">FIXTURE DATA</span>
+    </div>
+  </header>
+
+  <section class="pipeline" aria-label="Agent boundary pipeline">
+    <span class="stage stage-on" data-stage="observe">observe</span>
+    <span class="arrow">→</span>
+    <span class="stage stage-on" data-stage="calculate">calculate</span>
+    <span class="arrow">→</span>
+    <span class="stage stage-on" data-stage="propose">propose</span>
+    <span class="arrow">→</span>
+    <span class="stage stage-on" data-stage="approve">approve</span>
+    <span class="arrow arrow-cut">⇸</span>
+    <span class="stage stage-off" title="Not available in this host">execute 🔒</span>
+    <span class="arrow arrow-cut">⇸</span>
+    <span class="stage stage-off" title="Not available in this host">verify 🔒</span>
+    <span class="pipeline-note">execution &amp; verification are not part of this host</span>
+  </section>
+
+  <main class="grid">
+    <div class="col">
+      <section class="card" id="snapshot-card">
+        <div class="card-head">
+          <h2>Portfolio snapshot</h2>
+          <span class="boundary boundary-observe">observed</span>
+        </div>
+        <div class="card-body" id="snapshot-body">
+          <p class="loading">Loading snapshot…</p>
+        </div>
+      </section>
+
+      <section class="card" id="pnl-card">
+        <div class="card-head">
+          <h2>USD PnL</h2>
+          <span class="boundary boundary-calculate">calculated</span>
+        </div>
+        <div class="card-body" id="pnl-body">
+          <p class="loading">Loading PnL…</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card card-agent" id="dca-card">
+        <div class="card-head">
+          <h2>DCA agent</h2>
+          <span class="boundary boundary-propose">proposal</span>
+        </div>
+        <div class="card-body">
+          <p class="agent-hint">
+            Describe a dollar-cost-averaging plan in plain language. Missing
+            details produce a clarification question — never a guess. A complete
+            request produces a <em>preview only</em>.
+          </p>
+          <form id="dca-form" autocomplete="off">
+            <div class="input-row">
+              <input
+                id="dca-input"
+                type="text"
+                placeholder="e.g. DCA another $300 of ETH"
+                aria-label="DCA request"
+              />
+              <button type="submit" id="dca-submit">Parse &amp; preview</button>
+            </div>
+          </form>
+          <div class="chips">
+            <button class="chip" data-example="DCA another $300 of ETH">
+              incomplete → clarification
+            </button>
+            <button
+              class="chip"
+              data-example="DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456"
+            >
+              complete → preview
+            </button>
+          </div>
+          <div id="dca-result" class="dca-result">
+            <p class="placeholder">
+              Try an example above to see how the agent parses a request into
+              explicit fields.
+            </p>
+          </div>
+          <div class="no-execute">
+            <span class="lock">🔒</span>
+            No execute button exists. This host cannot connect a wallet, sign,
+            or submit a transaction — approval and execution belong to a
+            separately authorized rail.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="safety-strip">
+    <code>observe ≠ calculate ≠ propose ≠ approve ≠ execute ≠ verify</code>
+    <span class="dot">·</span> No wallet connect
+    <span class="dot">·</span> No signing
+    <span class="dot">·</span> No transaction submission
+    <span class="dot">·</span> No investment advice
+    <span class="dot">·</span> Fixture values are examples, not live market data
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
