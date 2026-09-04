@@ -2,9 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from zerion_portfolio_manager.adapters import ExecutionError, FakeExecutionAdapter
-from zerion_portfolio_manager.dca import DcaIntent
-from zerion_portfolio_manager.safety import build_preview
+from scout_portfolio_manager.adapters import ExecutionError, FakeExecutionAdapter
+from scout_portfolio_manager.dca import DcaIntent
+from scout_portfolio_manager.safety import build_preview
 
 
 def make_preview(destination="wallet:0xdef456"):

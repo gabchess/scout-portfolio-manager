@@ -3,15 +3,15 @@ from pathlib import Path
 
 import pytest
 
-from zerion_portfolio_manager import __version__
-from zerion_portfolio_manager.host import (
+from scout_portfolio_manager import __version__
+from scout_portfolio_manager.host import (
     DEFAULT_ETH_USD,
     TOOL_NAMES,
     ReadOnlyHost,
     default_host,
     error_kind_counts,
 )
-from zerion_portfolio_manager.zerion_api import (
+from scout_portfolio_manager.zerion_api import (
     ZerionAPIAuthError,
     ZerionAPIError,
     ZerionAPIPaginationError,

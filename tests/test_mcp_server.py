@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from zerion_portfolio_manager import mcp_server
-from zerion_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager import mcp_server
+from scout_portfolio_manager.host import ReadOnlyHost
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
 
@@ -45,13 +45,16 @@ def test_create_server_registers_only_read_tools(monkeypatch):
 
     monkeypatch.setattr(mcp_server, "_require_mcp", lambda: FakeMCP)
     server = mcp_server.create_server(ReadOnlyHost(FIXTURE))
-    assert server.name == "portfolio-manager"
+    assert server.name == "scout-portfolio"
     assert list(registered) == [
         "get_portfolio_snapshot",
         "get_pnl",
         "parse_dca_request",
         "preview_dca",
     ]
-    assert not any("execute" in name for name in registered)
+    banned = ("execute", "sign", "submit", "send", "transfer")
+    for tool_name in registered:
+        for word in banned:
+            assert word not in tool_name, f"{tool_name!r} looks like a write tool"
     payload = json.loads(registered["get_pnl"]())
     assert payload["results"][0]["unrealized_usd"] == 250.0

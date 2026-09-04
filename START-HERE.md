@@ -1,39 +1,31 @@
 # Start here
 
-## 1. Install
+Scout is a read-only portfolio intelligence package: fixture-backed by default, with an optional read-only Zerion API adapter. This file is the exact install route for the harness you are on. Pick one.
+
+## What installing this package does and does not authorize
+
+Installing Scout, by any route below, authorizes only local package installation: copying files, registering a plugin or skill with the host, and running the fixture-backed Python code.
+
+It does **not** authorize:
+
+- a live Zerion API key, a wallet connection, or any network call. The default source is the synthetic fixture at `fixtures/portfolio.json`; the optional Zerion adapter activates only when an operator explicitly sets both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` (see [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md));
+- signing, submitting, or executing any transaction. No component in this package has an execute, sign, or submit code path;
+- a background service, a scheduled task, or persistent state. Nothing in this package runs unless a host explicitly invokes its tools or a caller runs its server process.
+
+## Route 1: Claude Code plugin (local marketplace)
+
+From a terminal, with the Claude Code CLI installed:
 
 ```bash
-python3.11 -m venv .venv
-.venv/bin/pip install -e '.[test,mcp]'
+claude plugin marketplace add /path/to/scout-portfolio-manager
+claude plugin install scout-portfolio@scout-portfolio-manager
 ```
 
-Python 3.11 or newer is required. The MCP extra is optional if you only use the Python host or Claude Code command.
-
-## 2. Verify the install
-
-```bash
-.venv/bin/pytest -q
-```
-
-## 3. Try the fixture-backed host
-
-```bash
-.venv/bin/python - <<'PY'
-from zerion_portfolio_manager.host import ReadOnlyHost
-
-host = ReadOnlyHost("fixtures/portfolio.json")
-print(host.get_pnl())
-print(host.parse_dca_request("DCA another $300 of ETH"))
-PY
-```
-
-The default fixture is synthetic. It is the default data source and is not live portfolio data.
-
-## 4. Use the Claude Code plugin locally
+`marketplace.json`, not `plugin.json`, is the catalog `claude plugin marketplace add` reads; the repository ships both so installation by name works. The exact CLI spelling can vary by Claude Code release. Inside an already-running Claude Code session, the equivalent slash-command form also works:
 
 ```text
-/plugin marketplace add /path/to/portfolio-manager
-/plugin install portfolio-intel@portfolio-manager
+/plugin marketplace add /path/to/scout-portfolio-manager
+/plugin install scout-portfolio@scout-portfolio-manager
 ```
 
 Then try:
@@ -43,20 +35,67 @@ Then try:
 /portfolio-intelligence Preview a DCA request for $300 of ETH every week
 ```
 
-See [`PLUGIN-START-HERE.md`](PLUGIN-START-HERE.md) for plugin details.
+Claude Code launches the bundled MCP server itself, through `.mcp.json`, which runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp`. This needs `uv` on the launching shell's PATH; no separate `pip install` or PATH setup for the package itself is required for this route.
 
-## 5. Optional MCP server
+## Route 2: Codex (Agent Skills layout)
+
+The repository also ships a Codex-compatible plugin layout under `codex/`, generated from the same canonical source as the Claude Code plugin.
 
 ```bash
-.venv/bin/zpm-mcp
+codex plugin marketplace add /path/to/scout-portfolio-manager/codex/.agents/plugins
+codex plugin add scout-portfolio --marketplace scout-portfolio-manager
+codex plugin list
 ```
 
-The server exposes only `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to point to another local fixture.
+Use the path syntax your operating system and shell expect. The exact CLI flags can vary by Codex release; if a command above fails, run `codex plugin --help` and adjust the verb, not the marketplace path. Restart the host and open a new session after changing plugin state.
 
-Claude Code itself launches the server via `.mcp.json`, which runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp` instead of a bare `zpm-mcp` command. This works with no PATH setup, and `uv` (not a project-local `.venv/bin`) must be on the launching shell's PATH.
+## Route 3: Plain Python (no plugin host)
+
+```bash
+uv sync --extra test --extra mcp
+uv run pytest -q
+```
+
+Or without `uv`:
+
+```bash
+python3.11 -m venv .venv
+.venv/bin/pip install -e '.[test,mcp]'
+.venv/bin/pytest -q
+```
+
+Python 3.11 or newer is required. Try the fixture-backed host directly:
+
+```bash
+uv run python - <<'PY'
+from scout_portfolio_manager.host import ReadOnlyHost
+
+host = ReadOnlyHost("fixtures/portfolio.json")
+print(host.get_pnl())
+print(host.parse_dca_request("DCA another $300 of ETH"))
+PY
+```
+
+The default fixture is synthetic. It is the default data source, not live portfolio data.
+
+To run the optional MCP server directly, without a plugin host:
+
+```bash
+uv run --extra mcp zpm-mcp
+```
+
+The server exposes only `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, and `preview_dca`. Set `ZPM_FIXTURE_PATH` to point at another local fixture.
+
+## Try the browser demo (any route)
+
+```bash
+uv run --project . demo/zerion-portfolio-agent/server.py
+```
+
+Then open `http://127.0.0.1:8787`. The demo runs entirely offline on the fixture; it never reads `ZERION_API_KEY`. See [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md).
 
 ## Boundaries
 
-DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is approval-required and does not execute.
+`observe != calculate != propose != approve != execute != verify`. DCA previews require amount, asset, chain, schedule, source, and destination. Missing fields are clarified, never guessed. A complete preview is `approval_state=required` and `execution_available=false`; wallet handoff and execution are a future product direction, not a current capability.
 
-This release does not provide wallet connection, signing, transaction submission, execution, or settlement verification. Never add API keys, private keys, seed phrases, or wallet secrets to this repository, prompts, fixtures, or logs. For data handling and security details, read [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+Never add API keys, private keys, seed phrases, or wallet secrets to this repository, prompts, fixtures, or logs. For the full data and security boundary, read [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) and [`SECURITY.md`](SECURITY.md). If installation or discovery fails, continue with [`SUPPORT.md`](SUPPORT.md).

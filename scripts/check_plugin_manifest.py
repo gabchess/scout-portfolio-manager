@@ -6,7 +6,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-EXPECTED_ENTRY_POINT = "zerion_portfolio_manager.mcp_server:main"
+EXPECTED_ENTRY_POINT = "scout_portfolio_manager.mcp_server:main"
 EXPECTED_TOOLS = (
     "get_portfolio_snapshot",
     "get_pnl",

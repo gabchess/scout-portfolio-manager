@@ -1,6 +1,6 @@
 import pytest
 
-from zerion_portfolio_manager.dca import parse_dca_request
+from scout_portfolio_manager.dca import parse_dca_request
 
 
 @pytest.mark.parametrize(

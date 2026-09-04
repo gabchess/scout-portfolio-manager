@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from zerion_portfolio_manager.intents import read_intent
-from zerion_portfolio_manager.portfolio import FixturePortfolioReader
+from scout_portfolio_manager.intents import read_intent
+from scout_portfolio_manager.portfolio import FixturePortfolioReader
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio.json"
 

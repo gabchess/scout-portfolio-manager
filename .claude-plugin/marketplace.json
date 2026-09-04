@@ -1,12 +1,12 @@
 {
-  "name": "portfolio-manager",
+  "name": "scout-portfolio-manager",
   "owner": {
     "name": "Zerion Portfolio Manager contributors"
   },
   "description": "Public Claude Code tooling for read-only portfolio intelligence.",
   "plugins": [
     {
-      "name": "portfolio-intel",
+      "name": "scout-portfolio",
       "source": "./",
       "description": "Read-only portfolio snapshots, explainable PnL, DCA clarification, and safe previews."
     }

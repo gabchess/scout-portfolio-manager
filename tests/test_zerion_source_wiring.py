@@ -9,10 +9,10 @@ from urllib.error import HTTPError
 
 import pytest
 
-from zerion_portfolio_manager import mcp_server
-from zerion_portfolio_manager.host import ReadOnlyHost
-from zerion_portfolio_manager.portfolio import FixturePortfolioReader
-from zerion_portfolio_manager.zerion_api import (
+from scout_portfolio_manager import mcp_server
+from scout_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager.portfolio import FixturePortfolioReader
+from scout_portfolio_manager.zerion_api import (
     API_KEY_ENV,
     CHAIN_ENV,
     WALLET_ENV,
@@ -135,7 +135,7 @@ def test_host_returns_typed_error_and_no_fixture_data_when_api_rejects_credentia
     def fake_urlopen(request, timeout):
         raise HTTPError(request.full_url, 401, "denied " + CREDENTIAL, {}, None)
 
-    monkeypatch.setattr("zerion_portfolio_manager.zerion_api.urlopen", fake_urlopen)
+    monkeypatch.setattr("scout_portfolio_manager.zerion_api.urlopen", fake_urlopen)
     host = ReadOnlyHost(reader_from_env(enabled_env()))
     for result in (host.get_portfolio_snapshot(), host.get_pnl(asset="ETH")):
         assert result["status"] == "error"

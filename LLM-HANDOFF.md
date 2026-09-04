@@ -109,21 +109,21 @@ The current tree is intended to be public-safe. Older history may contain pre-re
 Run from the repository root:
 
 ```bash
-python3.11 -m venv /tmp/portfolio-manager-review
-/tmp/portfolio-manager-review/bin/pip install -e '.[test,quality,mcp]'
-/tmp/portfolio-manager-review/bin/pytest -q
-/tmp/portfolio-manager-review/bin/ruff check src scripts tests
-/tmp/portfolio-manager-review/bin/mypy --check-untyped-defs src scripts
-/tmp/portfolio-manager-review/bin/python scripts/security_scan.py .
-/tmp/portfolio-manager-review/bin/python scripts/check_plugin_manifest.py .
-/tmp/portfolio-manager-review/bin/python -m compileall -q src tests scripts
-/tmp/portfolio-manager-review/bin/python -m pip wheel . --no-deps -w /tmp/portfolio-manager-wheel
+python3.11 -m venv /tmp/scout-portfolio-manager-review
+/tmp/scout-portfolio-manager-review/bin/pip install -e '.[test,quality,mcp]'
+/tmp/scout-portfolio-manager-review/bin/pytest -q
+/tmp/scout-portfolio-manager-review/bin/ruff check src scripts tests
+/tmp/scout-portfolio-manager-review/bin/mypy --check-untyped-defs src scripts
+/tmp/scout-portfolio-manager-review/bin/python scripts/security_scan.py .
+/tmp/scout-portfolio-manager-review/bin/python scripts/check_plugin_manifest.py .
+/tmp/scout-portfolio-manager-review/bin/python -m compileall -q src tests scripts
+/tmp/scout-portfolio-manager-review/bin/python -m pip wheel . --no-deps -w /tmp/scout-portfolio-manager-wheel
 ```
 
 Then install the wheel into a second clean environment and run:
 
 ```bash
-python -c 'from zerion_portfolio_manager.host import default_host; print(default_host().get_portfolio_snapshot())'
+python -c 'from scout_portfolio_manager.host import default_host; print(default_host().get_portfolio_snapshot())'
 ```
 
 Run the suite from outside the checkout as well. Use a local injected transport for adapter tests; no network request is required or desired for the default review.

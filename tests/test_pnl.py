@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from zerion_portfolio_manager.contracts import Holding
-from zerion_portfolio_manager.pnl import calculate_pnl
+from scout_portfolio_manager.contracts import Holding
+from scout_portfolio_manager.pnl import calculate_pnl
 
 
 def test_pnl_explains_unrealized_gain_with_formula_and_confidence():

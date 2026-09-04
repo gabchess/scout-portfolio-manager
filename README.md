@@ -1,6 +1,8 @@
-# Portfolio Intel
+# Scout
 
-A read-only portfolio intelligence plugin and Python package for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
+Your agent should know what you own.
+
+A read-only portfolio intelligence plugin and Python package, built on the Zerion API, for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
 
 The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's real per-asset holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
 
@@ -12,7 +14,7 @@ The product keeps these stages distinct:
 
 `observe != calculate != propose != approve != execute != verify`
 
-No execution or signing tool is provided by the host or MCP server.
+No execution or signing tool is provided by the host or MCP server. Execution boundary: not implemented in this host. A DCA request ends at a complete, approval-required preview; wallet handoff and execution are a future product direction, not a current capability.
 
 ## Quick start
 
@@ -36,8 +38,8 @@ See [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README
 
 ```python
 from pathlib import Path
-from zerion_portfolio_manager.portfolio import FixturePortfolioReader
-from zerion_portfolio_manager.intents import read_intent
+from scout_portfolio_manager.portfolio import FixturePortfolioReader
+from scout_portfolio_manager.intents import read_intent
 
 snapshot = FixturePortfolioReader(Path("fixtures/portfolio.json")).snapshot()
 answer = read_intent("What is my PnL?", snapshot)
@@ -46,7 +48,7 @@ answer = read_intent("What is my PnL?", snapshot)
 The read-only host exposes observations, calculations, intent parsing, and previews:
 
 ```python
-from zerion_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager.host import ReadOnlyHost
 
 host = ReadOnlyHost("fixtures/portfolio.json")
 host.get_portfolio_snapshot()
@@ -87,8 +89,8 @@ When enabled, `get_portfolio_snapshot` returns `source.kind = "zerion_api"` with
 Python callers can do the same without environment variables:
 
 ```python
-from zerion_portfolio_manager.host import ReadOnlyHost
-from zerion_portfolio_manager.zerion_api import ZerionAPIConfig, ZerionAPIReader, ZerionWalletReader
+from scout_portfolio_manager.host import ReadOnlyHost
+from scout_portfolio_manager.zerion_api import ZerionAPIConfig, ZerionAPIReader, ZerionWalletReader
 
 reader = ZerionWalletReader(ZerionAPIReader(ZerionAPIConfig(api_key=key_from_secret_manager)), wallet)
 host = ReadOnlyHost(reader)
@@ -103,9 +105,9 @@ host = ReadOnlyHost(reader)
 
 Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`. The default remains fixture-backed and offline. Set `ZPM_FIXTURE_PATH` to use another local fixture, or set both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` to observe one real wallet read-only (see above). No wallet, signing, submission, execution, or settlement-verification tool is registered.
 
-## Claude Code plugin
+## Install as a plugin
 
-This repository is also a Claude Code plugin for read-only portfolio intelligence. Local installation and commands are documented in [`PLUGIN-START-HERE.md`](PLUGIN-START-HERE.md).
+This repository is also a Claude Code plugin, with an Agent Skills-compatible Codex layout, for read-only portfolio intelligence. Every install route (Claude Code plugin, Codex, or plain Python) is documented in [`START-HERE.md`](START-HERE.md).
 
 ## Documentation
 

@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zerion-portfolio-manager"
-version = "0.1.0"
+name = "scout-portfolio-manager"
+version = "0.2.0"
 description = "Fixture-backed read-only portfolio intelligence"
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.5,<3"]
@@ -15,13 +15,13 @@ quality = ["ruff>=0.6,<1", "mypy>=1.11,<2"]
 mcp = ["mcp>=1.2,<2"]
 
 [project.scripts]
-zpm-mcp = "zerion_portfolio_manager.mcp_server:main"
+zpm-mcp = "scout_portfolio_manager.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-zerion_portfolio_manager = ["data/*.json"]
+scout_portfolio_manager = ["data/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
@@ -45,5 +45,5 @@ warn_unused_configs = true
 disallow_any_generics = true
 exclude = ["^tests/", "^build/"]
 [[tool.mypy.overrides]]
-module = ["zerion_portfolio_manager.mcp_server"]
+module = ["scout_portfolio_manager.mcp_server"]
 ignore_missing_imports = true

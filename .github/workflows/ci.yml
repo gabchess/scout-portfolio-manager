@@ -31,3 +31,5 @@ jobs:
         run: python scripts/security_scan.py .
       - name: Plugin manifest and README checks
         run: python scripts/check_plugin_manifest.py .
+      - name: Checksum drift check
+        run: python scripts/write_checksums.py --check

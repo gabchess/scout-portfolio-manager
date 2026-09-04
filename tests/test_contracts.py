@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from zerion_portfolio_manager.contracts import Holding, PortfolioSnapshot, Transaction
-from zerion_portfolio_manager.pnl import PnlResult
+from scout_portfolio_manager.contracts import Holding, PortfolioSnapshot, Transaction
+from scout_portfolio_manager.pnl import PnlResult
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "portfolio.json"
 
