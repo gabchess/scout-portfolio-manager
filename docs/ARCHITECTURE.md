@@ -10,7 +10,7 @@ agent runtime / MCP client
        -> execution: not exposed by the host or MCP server
 ```
 
-`preview_id` is host-minted identity on every complete preview envelope. There is no session store and no execute rail in this package surface.
+`preview_id` is host-minted identity on every complete preview envelope. It is non-authoritative: a stable, quotable id for future audit/idempotency use, never an authorization token, and must not be treated as one absent a registry (none exists yet). There is no session store and no execute rail in this package surface.
 
 The default source is a local synthetic fixture. `zpm-mcp` wraps the same four read-only tools over stdio MCP and selects the source from the environment: the Zerion API only when `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are both set, otherwise the fixture. A partial pair is a startup error, and an API failure at call time returns a typed error rather than fixture data. The optional API adapter is an external, read-only data boundary: its availability, authorization, freshness, and response shape depend on the configured Zerion account and endpoint contract.
 
