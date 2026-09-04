@@ -51,7 +51,7 @@ uv run --project . demo/zerion-portfolio-agent/server.py
 
 Open `http://127.0.0.1:8787`.
 
-![Zerion Portfolio Agent demo, dashboard with portfolio snapshot, PnL, and a completed DCA preview showing approval_state required and execution_available false](docs/zerion-portfolio-demo-screenshot.png)
+![Scout demo: snapshot, PnL with paid, worth now and return, this week's buy window, alerts, and a DCA proposal that stops at approval](docs/zerion-portfolio-demo-screenshot.png)
 
 Full walkthrough: [`demo/zerion-portfolio-agent/README.md`](demo/zerion-portfolio-agent/README.md).
 
