@@ -64,8 +64,9 @@ zero once the field ships.
 
 Document rate-limit headers (remaining count, reset time) on every endpoint's
 reference page, paired with a worked backoff example a developer can copy.
-Zerion's default rate limit is 150 requests per second; today a client has to
-infer its remaining budget rather than read it.
+The reference pages publish no numeric rate limit; only a 429 response
+signals it. Today a client has to infer its remaining budget rather than
+read it.
 
 **Measure of success**: A developer building backoff logic never has to guess
 at the current limit or read the changelog to find it. Check: every
@@ -94,12 +95,12 @@ Check: if Zerion tracks it, a drop in support tickets that ask why
 
 ### 5. Raise the `/transactions/` `page[size]` cap
 
-Raise the documented `page[size]` cap on `/transactions/` from 100 toward the
-250-500 range already precedented on the NFT positions endpoint (observed
-2026-05-29). Whether `/positions/` or `/transactions/` already support a
-higher cap undocumented is unverified; this repo's adapter spec pins
-`page[size]=100` until that's checked, precisely to avoid depending on an
-unconfirmed higher limit.
+Raise the documented `page[size]` cap on `/transactions/` from 100 toward
+the 500-item cap Zerion already ships on nft-positions (page[size] default
+50, max 500, per the 2026-05-29 changelog entry). Whether `/positions/` or
+`/transactions/` already support a higher cap undocumented is unverified;
+this repo's adapter spec pins `page[size]=100` until that's checked,
+precisely to avoid depending on an unconfirmed higher limit.
 
 **Measure of success**: A wallet with a long transaction history needs fewer
 round trips to page through its full ledger. Check: fetching 1,000

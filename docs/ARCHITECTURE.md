@@ -47,3 +47,11 @@ tool exists for a caller to invoke past preview, and `DcaPreview.approval_state`
 pydantic `Literal`, checked at construction, not a string a caller can talk past. Known
 gap: approval is a label today, not a record of who set it; that record should exist
 before any real execution adapter replaces the fake one.
+
+## Roadmap
+
+This adapter is poll-only today: the host and MCP server pull positions and
+transactions on request instead of subscribing to a feed. Push-based
+observe, driven by a Zerion webhook or Zerion Streams subscription instead
+of a poll, is a known v2 gap, named here rather than left as an unstated
+oversight.

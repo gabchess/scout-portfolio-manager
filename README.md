@@ -1,8 +1,14 @@
 # Portfolio Intel
 
-A read-only portfolio intelligence plugin and Python package for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
+Multi-wallet Zerion calls hit real 429 storms in production. Teams fanning out across chains and wallets have shipped that failure mode before: a blank chart, a missing wallet row, no way to tell a rate limit from an empty portfolio.
 
-The default source is the synthetic fixture at `fixtures/portfolio.json`. An optional `ZerionAPIReader` can read one wallet's real per-asset holdings and transaction ledger through an explicitly configured, read-only Zerion API connection. The adapter does not submit transactions or expose credentials in results.
+This host makes that state typed and retryable, not a silent blank chart. A `rate_limit` error carries `Retry-After`. A snapshot never goes quiet.
+
+It also stays quota-light. One full snapshot costs about 21 calls, 1.05% of the free daily quota, because PnL is computed from positions and transactions instead of the metered PnL endpoint. This adapter computes PnL locally from `/positions/` and `/transactions/` rather than calling Zerion's `/pnl` endpoint directly, which sidesteps that endpoint's quota cap, worth confirming with Abi whether Zerion's "DeFi Positions" 25%-quota bucket also covers the `/positions/` endpoint itself, since if so this adapter isn't fully outside that cap, only outside the `/pnl`-specific one.
+
+Point it at Zerion's own API for one wallet, read-only, or a fixture with no key at all. It returns a typed portfolio snapshot, PnL with the acquisition basis shown or flagged missing, and a DCA preview a human still approves elsewhere.
+
+The agent never gets a tool that can sign or send. That's not a promise. Tool names like `execute`, `sign`, and `submit` don't exist in this host at all, so there is nothing for a prompt to talk it into calling. The boundary is structural, not stated.
 
 ## Safety boundary
 
@@ -13,6 +19,21 @@ The product keeps these stages distinct:
 `observe != calculate != propose != approve != execute != verify`
 
 No execution or signing tool is provided by the host or MCP server.
+
+## Why not zerion-cli, a Zerion MCP server, or agent skills?
+
+Zerion already ships zerion-cli, an MCP server, and agent skills, and all
+three point the same direction: toward an agent that acts onchain, trading
+and signing and submitting. This host does not replace any of them and is
+not trying to. It does one narrower job: observe, calculate, propose,
+approve, so an agent can reason about a wallet's positions and PnL without
+ever holding a tool that can sign or send. If what you need is an agent
+that acts, Zerion's own execution tooling is the right answer, and this
+repo deliberately does not duplicate it. If what you need is an agent you
+can hand to a wallet with a guarantee it cannot move funds, structural
+rather than promised, that is what this fills. Read this as a
+safety-boundary and explainable-PnL layer that sits in front of Zerion's
+agent-native stack, not a competitor to it.
 
 ## Quick start
 
