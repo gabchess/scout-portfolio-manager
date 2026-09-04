@@ -20,9 +20,11 @@ No execution or signing tool is provided by the host or MCP server. Execution bo
 
 ```bash
 python3.11 -m venv .venv
-.venv/bin/pip install -e '.[test]'
+.venv/bin/pip install -e '.[test,mcp]'
 .venv/bin/pytest -q
 ```
+
+The `mcp` extra is required for the full test suite to pass, since some tests exercise the optional MCP server.
 
 The fixture contains 1 ETH bought for $2,000 and valued at $2,250, producing a transparent $250 unrealized gain. Fixture values are examples, not live market data.
 
@@ -121,4 +123,4 @@ This repository is also a Claude Code plugin, with an Agent Skills-compatible Co
 
 ## Status
 
-Version `0.1.0` is an early release: fixture-backed functionality, a read-only host, an optional read-only API adapter, and an optional read-only MCP server. Treat API-backed observations as external data with freshness, availability, and authorization limits.
+Version `0.2.0` is an early release: fixture-backed functionality, a read-only host, an optional read-only API adapter, and an optional read-only MCP server. Treat API-backed observations as external data with freshness, availability, and authorization limits.
