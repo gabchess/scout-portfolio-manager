@@ -1,13 +1,12 @@
 # Zerion API DX proposal
 
 Date: 2026-09-03
-Status: proposal, not yet reviewed by Zerion product or engineering
-Owner: crew synthesis, drafted by Masthead
+Status: draft proposal, not yet reviewed by Zerion product or engineering
 
 ## Purpose
 
 This document collects five developer-experience proposals for the Zerion API,
-based on crew findings from 2026-09-03. Each proposal names a concrete measure
+based on findings from 2026-09-03. Each proposal names a concrete measure
 of success: a signal you can check, not an aspiration you can't. It also lists
 three open questions for Abi, Zerion's product lead, that the proposal set
 raises.
@@ -17,10 +16,10 @@ raises.
 The proposals below draw on two source sets with different verification
 status. Keep the distinction when you read or cite this document.
 
-- **Zerion facts**: documented, checked by the crew's Seat D against Zerion's
-  own docs on 2026-09-03. Treat these as verified.
+- **Zerion facts**: documented, checked against Zerion's own docs on
+  2026-09-03. Treat these as verified.
 - **Arkham facts**: documented from an email Gabe received on 2026-09-03.
-  Status: reported, independently unverified. The crew's fetch against
+  Status: reported, independently unverified. A fetch attempt against
   Arkham's own announcement returned an HTTP 503, so nobody has read the
   primary source yet. Proposal 1 below cites Arkham's shape as *inspiration
   only*. Don't read it as a confirmed Arkham precedent, and don't upgrade it
@@ -109,7 +108,7 @@ change in per-request latency.
 
 ## Open questions for Abi
 
-These are questions this proposal set raises, not positions the crew is
+These are questions this proposal set raises, not positions this document is
 taking.
 
 1. Push-only webhooks vs. a resumable poll model: is Zerion already

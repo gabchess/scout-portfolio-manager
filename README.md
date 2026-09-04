@@ -101,13 +101,13 @@ This repository is also a Claude Code plugin for read-only portfolio intelligenc
 
 ## Documentation
 
-- [`START-HERE.md`](START-HERE.md) — install and first use
-- [`SECURITY.md`](SECURITY.md) — security boundary and reporting guidance
-- [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md) — data handling and API-adapter considerations
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — runtime boundary
-- [`docs/SHOW-ME.md`](docs/SHOW-ME.md) — request and preview flow
-- [`CHANGELOG.md`](CHANGELOG.md) — release history
-- [`SUPPORT.md`](SUPPORT.md) — questions and issue reports
+- [`START-HERE.md`](START-HERE.md): install and first use
+- [`SECURITY.md`](SECURITY.md): security boundary and reporting guidance
+- [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md): data handling and API-adapter considerations
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): runtime boundary
+- [`docs/SHOW-ME.md`](docs/SHOW-ME.md): request and preview flow
+- [`CHANGELOG.md`](CHANGELOG.md): release history
+- [`SUPPORT.md`](SUPPORT.md): questions and issue reports
 
 ## Status
 

@@ -2,28 +2,35 @@
 
 ## Unreleased
 
-- Replaced the single synthetic `PORTFOLIO` holding with real per-asset holdings from `GET /wallets/{addr}/positions/` and a mapped transaction ledger from `GET /wallets/{addr}/transactions/` (cursor-paginated via `links.next`, bounded by `ZerionAPIConfig.max_pages`, default 20). `get_pnl` now computes basis from observed buy transactions per asset.
-- Expanded the Zerion error taxonomy with `ZerionAPIPaginationError` (cap hit or broken cursor) and a `not_found` observe-error kind for 404 (status-based, no dedicated exception type); `ZerionAPIServerError` (5xx) reads `Retry-After` the same way `ZerionAPIRateLimitError` does, and every observe-error now carries an orthogonal `retryable` flag alongside its cause `kind`.
-- `Holding`, `Transaction`, and `PnlResult` now reject `Infinity`, `NaN`, and boolean/string values coerced into float fields instead of silently accepting them.
-- `ZerionAPIConfig` validates `base_url` at construction: a non-`https` scheme or an unexpected host raises `ValueError` immediately instead of failing at request time.
-- Each tool descriptor in `ReadOnlyHost.tool_manifest()` now carries a `version` field; see `docs/ARCHITECTURE.md` for the deprecation policy.
-- Added a structured log line and an in-process counter, keyed by `error.kind`, for every typed observe-boundary error.
-- Fixed `.mcp.json` launching a bare `zpm-mcp` command, which failed with `ENOENT` unless the repo's `.venv/bin` happened to be on the launching shell's PATH. It now runs `uv run --project . --extra mcp zpm-mcp`, which resolves the project and its optional `mcp` extra from `uv` alone. `ZPM_FIXTURE_PATH` is now a plain relative path (`fixtures/portfolio.json`) instead of a `${CLAUDE_PLUGIN_ROOT}`-prefixed one, since that placeholder is unset when this repo is opened directly as a Claude Code project rather than installed through the plugin marketplace.
-- Wired the read-only Zerion adapter through the host and `zpm-mcp`. Enabled only when `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are both set; a partial pair fails at startup, and API failures return typed errors with no fixture fallback.
-- `ReadOnlyHost` now accepts any zero-argument portfolio reader in addition to a fixture path.
-- Adopted `preview_id`, a host-minted UUID on every complete preview envelope, with
-  non-authoritative framing: a stable, quotable id for future audit/idempotency use, never
-  an authorization token. The preview boundary stays at `approval_state=required`; no
-  execute step exists in this package surface.
+### Added
 
-## 0.1.0 — 2026-09-03
+- The Zerion adapter now reads real per-asset holdings from `GET /wallets/{addr}/positions/` and a mapped transaction ledger from `GET /wallets/{addr}/transactions/`, replacing the earlier single synthetic aggregate holding. Transaction pages follow `links.next` up to `ZerionAPIConfig.max_pages` (default 20). `get_pnl` computes basis from each asset's observed buy transactions.
+- Every observe-boundary error now carries a `retryable` flag alongside its error kind, so a caller can decide whether to retry without pattern-matching the message text. A 404 now reports a `not_found` kind, and a 5xx server error honors a `Retry-After` header the same way a 429 rate limit does, when the response actually sends one.
+- Each tool listed in `ReadOnlyHost.tool_manifest()` now reports a `version` field. See `docs/ARCHITECTURE.md` for the deprecation policy this enables.
+- Every completed DCA preview now carries a `preview_id`, a host-minted id for future audit or idempotency use. It is not an authorization token: the preview still requires `approval_state=required`, and no execute step exists in this package.
+- Added a structured log line and an in-process counter, keyed by error kind, for every typed observe-boundary error.
+
+### Changed
+
+- `Holding`, `Transaction`, and `PnlResult` now reject `Infinity`, `NaN`, and boolean or string values coerced into a float field, instead of accepting them silently.
+- `ZerionAPIConfig` validates `base_url` when it's constructed: a non-`https` scheme or an unexpected host raises immediately instead of failing later at request time.
+- `ReadOnlyHost` now accepts any zero-argument portfolio reader, not only a fixture path, so the optional Zerion adapter can plug in without a separate host implementation.
+
+### Fixed
+
+- `.mcp.json` launched a bare `zpm-mcp` command, which failed with `ENOENT` unless the repo's `.venv/bin` happened to already be on the launching shell's PATH. It now runs `uv run --project ${CLAUDE_PLUGIN_ROOT:-.} --extra mcp zpm-mcp`, which resolves the project and its optional `mcp` extra through `uv` alone, whether the repo is opened directly or installed through the plugin marketplace. `ZPM_FIXTURE_PATH` uses the same `${CLAUDE_PLUGIN_ROOT:-.}` default-syntax prefix, so the fixture resolves correctly either way.
+- The optional Zerion API source is now wired through the host and `zpm-mcp`, enabled only when both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` are set. A partial pair fails at startup rather than at first call, and an API failure returns a typed error with no silent fallback to the fixture.
+
+## 0.1.0 - 2026-09-03
 
 Early release.
 
-- Added a synthetic fixture-backed portfolio reader and explainable USD PnL.
-- Added explicit DCA intent parsing and approval-required previews.
-- Added a read-only host and optional stdio MCP server.
-- Added an opt-in, read-only Zerion aggregate portfolio adapter.
-- Documented the no-wallet, no-signing, no-submission, and no-execution boundary.
+### Added
 
-Known limits: the default fixture is not live data; the API adapter exposes an aggregate observation rather than a transaction ledger; no production availability, endpoint compatibility, or support SLA is claimed.
+- A synthetic fixture-backed portfolio reader and explainable USD PnL.
+- Explicit DCA intent parsing and approval-required previews.
+- A read-only host and an optional stdio MCP server.
+- An opt-in, read-only Zerion aggregate portfolio adapter.
+- Documentation of the no-wallet, no-signing, no-submission, and no-execution boundary.
+
+Known limits: the default fixture isn't live data. The API adapter exposed only an aggregate observation, not yet a transaction ledger, as of this release. No production availability, endpoint compatibility, or support SLA is claimed.
