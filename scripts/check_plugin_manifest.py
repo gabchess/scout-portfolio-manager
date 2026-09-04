@@ -12,6 +12,7 @@ EXPECTED_TOOLS = (
     "get_pnl",
     "parse_dca_request",
     "preview_dca",
+    "analyze_asset",
 )
 
 

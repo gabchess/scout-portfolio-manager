@@ -81,7 +81,7 @@ Scout can also read one real wallet's holdings and transaction ledger through a 
 
 Run it directly, without a plugin host: `uv run --extra mcp zpm-mcp`.
 
-Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`. No wallet, signing, submission, or execution tool exists on this server.
+Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`. No wallet, signing, submission, or execution tool exists on this server.
 
 ## Video
 

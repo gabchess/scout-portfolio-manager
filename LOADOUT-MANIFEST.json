@@ -5,8 +5,20 @@
   "default_source": "synthetic fixture",
   "optional_sources": ["read-only Zerion aggregate portfolio API"],
   "surfaces": {
-    "python_host": ["get_portfolio_snapshot", "get_pnl", "parse_dca_request", "preview_dca"],
-    "mcp": ["get_portfolio_snapshot", "get_pnl", "parse_dca_request", "preview_dca"],
+    "python_host": [
+      "get_portfolio_snapshot",
+      "get_pnl",
+      "parse_dca_request",
+      "preview_dca",
+      "analyze_asset"
+    ],
+    "mcp": [
+      "get_portfolio_snapshot",
+      "get_pnl",
+      "parse_dca_request",
+      "preview_dca",
+      "analyze_asset"
+    ],
     "claude_code_command": "/portfolio-intelligence"
   },
   "capabilities": {
@@ -18,7 +30,8 @@
     "execute": false,
     "sign": false,
     "submit": false,
-    "verify_settlement": false
+    "verify_settlement": false,
+    "technical_analysis": true
   },
   "component_versions": {
     "product": "0.2.0",

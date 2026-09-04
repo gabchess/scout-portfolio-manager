@@ -11,12 +11,22 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from . import __version__
+from .analytics import (
+    distance_from_range_pct,
+    drawdown_from_cost_basis_pct,
+    ema,
+    range_30d,
+    rsi,
+    sma,
+)
+from .contracts import Transaction
 from .dca import DcaIntent, parse_dca_request
 from .pnl import PnlResult, calculate_pnl
 from .portfolio import FixturePortfolioReader, PortfolioReader
+from .price_history import FixturePriceHistoryReader, PriceHistoryReader
 from .safety import build_preview
 from .zerion_api import (
     ZerionAPIAuthError,
@@ -44,7 +54,20 @@ TOOL_NAMES = (
     "get_pnl",
     "parse_dca_request",
     "preview_dca",
+    "analyze_asset",
 )
+
+#: analyze_asset's freshness gate: how many days old the last observed price
+#: point may be, relative to the snapshot's observed_at date, before the
+#: response is flagged stale. Never used to suppress an indicator, only to
+#: flag it; see analyze_asset's docstring.
+DEFAULT_MAX_PRICE_AGE_DAYS = 2
+
+#: analyze_asset and dca_windows never claim more than this. Nothing here is
+#: backtested, so confidence is a fixed constant, not a computed one (see
+#: docs/spec-scout-ta-and-watch-0.3.0.md's non-obvious decisions).
+TA_CONFIDENCE = "low"
+TA_DISCLOSURE = "Heuristic indicators, not backtested; treat as descriptive, not predictive."
 
 # Deterministic fixture quote assumptions used only when the caller omits quote fields.
 # Labeled as assumed so hosts never confuse them with observed market data.
@@ -55,6 +78,19 @@ DEFAULT_MAX_FEE_USD = 5.0
 DEFAULT_QUOTE_TTL_SECONDS = 300
 
 
+def _acquisition_basis_usd(transactions: Sequence[Transaction], asset: str) -> float:
+    """Sum of buy transaction value + fee for one asset: the one basis calculation.
+
+    Shared by get_pnl and analyze_asset so basis (a flow, summed from buy
+    transactions) never drifts into two independently-computed numbers. Asset
+    matching is case-sensitive against the transaction ledger, matching the
+    existing PortfolioSnapshot/Transaction contract (fixture assets are
+    already uppercase).
+    """
+    buys = [t for t in transactions if t.asset == asset and t.kind == "buy"]
+    return sum(t.value_usd + t.fee_usd for t in buys)
+
+
 class ReadOnlyHost:
     """Read-only adapter suitable for MCP or direct Python hosts.
 
@@ -63,9 +99,34 @@ class ReadOnlyHost:
     configured reader fails, callers get a typed error, not fixture data.
     """
 
-    def __init__(self, source: Union[str, Path, PortfolioReader]):
+    def __init__(
+        self,
+        source: Union[str, Path, PortfolioReader],
+        *,
+        price_history_path: Optional[Union[str, Path]] = None,
+    ):
         self.reader: PortfolioReader = (
             FixturePortfolioReader(source) if isinstance(source, (str, Path)) else source
+        )
+        # Price history is always fixture-backed, independent of the portfolio
+        # source: no live price-history endpoint exists yet (see spec's
+        # non-goals). Defaults to a sibling of the portfolio fixture path when
+        # one is known, since fixtures/price_history.json ships next to
+        # fixtures/portfolio.json; falls back to a bare relative path
+        # otherwise (e.g. a live Zerion-backed portfolio reader with no
+        # fixture path of its own), which analyze_asset's None-handling
+        # already treats as "no price history observed".
+        fixture_path_attr = getattr(self.reader, "fixture_path", None)
+        if price_history_path is not None:
+            resolved_price_history_path: Union[str, Path] = price_history_path
+        elif isinstance(source, (str, Path)):
+            resolved_price_history_path = Path(source).parent / "price_history.json"
+        elif isinstance(fixture_path_attr, (str, Path)):
+            resolved_price_history_path = Path(fixture_path_attr).parent / "price_history.json"
+        else:
+            resolved_price_history_path = Path("fixtures") / "price_history.json"
+        self._price_history_reader: PriceHistoryReader = FixturePriceHistoryReader(
+            resolved_price_history_path
         )
 
     def tool_manifest(self) -> List[Dict[str, Any]]:
@@ -170,6 +231,27 @@ class ReadOnlyHost:
                     "additionalProperties": False,
                 },
             },
+            {
+                "name": "analyze_asset",
+                "version": __version__,
+                "description": (
+                    "Compute heuristic technical indicators (SMA, EMA, RSI, 30-day range, "
+                    "drawdown from cost basis) for one asset from observed transactions plus "
+                    "a synthetic price-history fixture. Read-only. Not backtested; descriptive, "
+                    "not predictive."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "asset": {
+                            "type": "string",
+                            "description": "Asset symbol to analyze, e.g. ETH",
+                        }
+                    },
+                    "required": ["asset"],
+                    "additionalProperties": False,
+                },
+            },
         ]
 
     def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -195,6 +277,11 @@ class ReadOnlyHost:
                 quote_expiry=arguments.get("quote_expiry"),
                 max_fee_usd=arguments.get("max_fee_usd"),
             )
+        if name == "analyze_asset":
+            asset = arguments.get("asset")
+            if not isinstance(asset, str) or not asset.strip():
+                raise ValueError("analyze_asset requires non-empty asset")
+            return self.analyze_asset(asset)
         if name in {"execute", "execute_dca", "submit", "sign"}:
             raise PermissionError(
                 f"{name} is not available on the read-only host; "
@@ -224,10 +311,7 @@ class ReadOnlyHost:
         for holding in snapshot.holdings:
             if target and holding.asset.upper() != target:
                 continue
-            buys = [
-                t for t in snapshot.transactions if t.asset == holding.asset and t.kind == "buy"
-            ]
-            basis = sum(t.value_usd + t.fee_usd for t in buys)
+            basis = _acquisition_basis_usd(snapshot.transactions, holding.asset)
             if not basis:
                 unknown.append(f"missing acquisition basis for {holding.asset}")
                 continue
@@ -247,6 +331,81 @@ class ReadOnlyHost:
             "results": [r.model_dump(mode="json") for r in results],
             "unknown": unknown,
         }
+
+    def analyze_asset(self, asset: str) -> Dict[str, Any]:
+        """Heuristic TA indicators for one asset. Read-only, never raises on a data gap.
+
+        Reuses get_pnl's acquisition-basis calculation for drawdown (one basis
+        sum, not two independently-drifting ones). Price-derived indicators
+        come from the fixture-backed price-history reader configured on this
+        host, independent of whichever portfolio source is configured.
+        Confidence is always "low": nothing here is backtested.
+        """
+        try:
+            snapshot = self.reader.snapshot()
+        except ZerionAPIError as exc:
+            return _observe_error(exc)
+
+        asset = asset.upper()
+        unknown: List[str] = []
+        indicators: Dict[str, Any] = {}
+        freshness: Optional[Dict[str, Any]] = None
+
+        history = self._price_history_reader.series(asset)
+        if history is None:
+            unknown.append(f"no price history observed for {asset}")
+        else:
+            closes = [p.close_usd for p in history.points]
+            last_price_date = history.points[-1].date
+            stale = (snapshot.observed_at.date() - last_price_date).days > (
+                DEFAULT_MAX_PRICE_AGE_DAYS
+            )
+            freshness = {
+                "stale": stale,
+                "max_age_days": DEFAULT_MAX_PRICE_AGE_DAYS,
+                "last_price_date": last_price_date.isoformat(),
+            }
+            sma_20 = sma(closes, 20)
+            if sma_20 is not None:
+                indicators["sma_20"] = round(sma_20, 4)
+            ema_12 = ema(closes, 12)
+            if ema_12 is not None:
+                indicators["ema_12"] = round(ema_12, 4)
+            rsi_14 = rsi(closes, 14)
+            if rsi_14 is not None:
+                indicators["rsi_14"] = round(rsi_14, 4)
+            range30 = range_30d(closes)
+            if range30 is not None:
+                indicators["range_30d"] = range30
+                indicators["distance_from_range_pct"] = {
+                    key: round(value, 4)
+                    for key, value in distance_from_range_pct(
+                        closes[-1], range30["low"], range30["high"]
+                    ).items()
+                }
+
+        basis = _acquisition_basis_usd(snapshot.transactions, asset)
+        holding = next((h for h in snapshot.holdings if h.asset.upper() == asset), None)
+        if basis and holding is not None:
+            indicators["drawdown_from_cost_basis_pct"] = round(
+                drawdown_from_cost_basis_pct(holding.value_usd, basis), 4
+            )
+        else:
+            unknown.append(f"missing acquisition basis for {asset}")
+
+        result: Dict[str, Any] = {
+            "status": "ok",
+            "boundary": "calculate",
+            "asset": asset,
+            "as_of": snapshot.observed_at.isoformat().replace("+00:00", "Z"),
+            "indicators": indicators,
+            "unknown": unknown,
+            "confidence": TA_CONFIDENCE,
+            "disclosure": TA_DISCLOSURE,
+        }
+        if freshness is not None:
+            result["freshness"] = freshness
+        return result
 
     def parse_dca_request(self, text: str) -> Dict[str, Any]:
         parsed = parse_dca_request(text)

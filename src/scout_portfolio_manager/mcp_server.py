@@ -94,6 +94,11 @@ def create_server(host: ReadOnlyHost | None = None):
             default=str,
         )
 
+    @server.tool(name="analyze_asset")
+    def analyze_asset(asset: str) -> str:
+        """Heuristic SMA/EMA/RSI/range/drawdown indicators for one asset. Read-only."""
+        return json.dumps(host.analyze_asset(asset), indent=2, default=str)
+
     return server
 
 

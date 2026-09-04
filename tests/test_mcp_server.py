@@ -51,6 +51,7 @@ def test_create_server_registers_only_read_tools(monkeypatch):
         "get_pnl",
         "parse_dca_request",
         "preview_dca",
+        "analyze_asset",
     ]
     banned = ("execute", "sign", "submit", "send", "transfer")
     for tool_name in registered:

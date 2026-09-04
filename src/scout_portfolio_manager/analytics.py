@@ -6,7 +6,7 @@ list is shorter than the required window. ``closes`` is always assumed
 oldest-first.
 """
 
-from typing import Optional, Sequence
+from typing import Dict, Optional, Sequence
 
 
 def sma(closes: Sequence[float], window: int) -> Optional[float]:
@@ -48,7 +48,7 @@ def rsi(closes: Sequence[float], window: int = 14) -> Optional[float]:
     return 100 - (100 / (1 + rs))
 
 
-def range_30d(closes: Sequence[float]) -> Optional[dict]:
+def range_30d(closes: Sequence[float]) -> Optional[Dict[str, float]]:
     """{"low", "high"} over the last 30 closes, or None with fewer than 30."""
     window = 30
     if len(closes) < window:
@@ -57,7 +57,7 @@ def range_30d(closes: Sequence[float]) -> Optional[dict]:
     return {"low": min(recent), "high": max(recent)}
 
 
-def distance_from_range_pct(current: float, low: float, high: float) -> dict:
+def distance_from_range_pct(current: float, low: float, high: float) -> Dict[str, float]:
     """{"from_low_pct", "from_high_pct"}: current's percent distance from each bound."""
     from_low_pct = ((current - low) / low * 100) if low else 0.0
     from_high_pct = ((current - high) / high * 100) if high else 0.0
