@@ -23,11 +23,25 @@
     "execution": false,
     "settlement_verification": false
   },
-  "honesty_artifacts": ["WHAT-BROKE.md", "SECURITY.md", "DATA-AND-PRIVACY.md", "CHANGELOG.md", "SUPPORT.md"],
+  "honesty_artifacts": [
+    "WHAT-BROKE.md",
+    "SECURITY.md",
+    "DATA-AND-PRIVACY.md",
+    "CHANGELOG.md",
+    "SUPPORT.md"
+  ],
   "known_limits": [
     "Synthetic fixture is not live data.",
     "API-backed observations depend on endpoint access, authorization, freshness, and availability.",
     "No production SLA or Zerion endorsement is claimed."
   ],
-  "evidence_boundary": "Proves the declared release identity, version, execution boundary, and file tree as authored and checksummed (see SHA256SUMS.txt); does not prove behavior, security, or data freshness on the installer's machine."
+  "evidence_boundary": "Proves the declared release identity, version, execution boundary, and file tree as authored and checksummed (see SHA256SUMS.txt); does not prove behavior, security, or data freshness on the installer's machine.",
+  "release_artifacts": [
+    {
+      "path": "dist/scout-portfolio-0.2.0.zip",
+      "sha256": "02981f33945628a57ea27ce270876c95d14fc636ba0dd32ad7de9f02927fa9a9",
+      "version": "0.2.0",
+      "built_at": "2026-09-04T18:16:10Z"
+    }
+  ]
 }
