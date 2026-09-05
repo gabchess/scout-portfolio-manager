@@ -1,9 +1,11 @@
 {
   "schema_version": 1,
   "product": "scout-portfolio",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "default_source": "synthetic fixture",
-  "optional_sources": ["read-only Zerion aggregate portfolio API"],
+  "optional_sources": [
+    "read-only Zerion aggregate portfolio API"
+  ],
   "surfaces": {
     "python_host": [
       "get_portfolio_snapshot",
@@ -41,7 +43,7 @@
     "alerts": true
   },
   "component_versions": {
-    "product": "0.3.0",
+    "product": "0.3.1",
     "zerion_adapter": "0.2.0",
     "demo_ui": "0.1.0"
   },

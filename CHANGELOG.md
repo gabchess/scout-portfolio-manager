@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 - 2026-09-04
+
+### Changed
+
+- Host DCA preview contract: complete previews return `boundary: "preview"` (was
+  `"approve"`). `preview_id` remains host-minted; approve is not a session store.
+  Execute and verify remain unregistered.
+- README leads with **Meet Scout** and the corgi mascot; `docs/social-preview-scout.png`
+  added for GitHub Social preview upload.
+
 ## 0.3.0 - 2026-09-04
 
 Adds a technical-analysis and alerts layer on top of the existing read-only tools,

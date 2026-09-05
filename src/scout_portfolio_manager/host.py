@@ -79,7 +79,7 @@ DEFAULT_MAX_PRICE_AGE_DAYS = 2
 TA_CONFIDENCE = "low"
 TA_DISCLOSURE = "Heuristic indicators, not backtested; treat as descriptive, not predictive."
 
-#: Pinned verbatim, grepped by the release review pipeline: never reword.
+#: Pinned verbatim, grepped by Harrier and Kestrel: never reword.
 NOT_FINANCIAL_ADVICE = "This is analysis, not financial advice."
 
 # Deterministic fixture quote assumptions used only when the caller omits quote fields.
@@ -519,6 +519,8 @@ class ReadOnlyHost:
         }
         if freshness is not None:
             result["freshness"] = freshness
+        if history is not None:
+            result["price_history_source"] = history.source.model_dump(mode="json")
         return result
 
     def dca_windows(
@@ -566,6 +568,8 @@ class ReadOnlyHost:
             result["suggested_amount_usd"] = classification["suggested_amount_usd"]
         if analysis.get("freshness") is not None:
             result["freshness"] = analysis["freshness"]
+        if analysis.get("price_history_source") is not None:
+            result["price_history_source"] = analysis["price_history_source"]
         return result
 
     def set_alert(self, asset: str, kind: str, threshold: float) -> Dict[str, Any]:
@@ -696,7 +700,7 @@ class ReadOnlyHost:
         )
         return {
             "status": "preview_ready",
-            "boundary": "approve",
+            "boundary": "preview",
             "preview_id": preview.preview_id,
             "intent": intent.model_dump(mode="json"),
             "missing": [],

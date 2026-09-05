@@ -122,3 +122,10 @@ def test_dca_windows_flags_stale_price_data_never_silently_dropped(tmp_path):
     assert result["label"] in {"favorable", "neutral", "unfavorable"}
     assert result["freshness"]["stale"] is True
     assert result["freshness"]["last_price_date"] == "2026-09-03"
+
+
+def test_dca_windows_propagates_price_history_source(host):
+    result = host.dca_windows("ETH")
+    assert result["status"] == "ok"
+    src = result["price_history_source"]
+    assert src["kind"] == "fixture"

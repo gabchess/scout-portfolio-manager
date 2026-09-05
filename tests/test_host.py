@@ -105,7 +105,7 @@ def test_preview_dca_boundary_is_approve(host: ReadOnlyHost):
         max_fee_usd=5.0,
     )
     assert result["status"] == "preview_ready"
-    assert result["boundary"] == "approve"
+    assert result["boundary"] == "preview"
     assert isinstance(result["preview_id"], str) and result["preview_id"]
     assert result["preview_id"] == result["preview"]["preview_id"]
     assert result["approval_state"] == "required"
@@ -236,3 +236,11 @@ def test_observe_error_logged_emits_structured_log_and_increments_counter(caplog
 
     after = error_kind_counts().get("authorization", 0)
     assert after == before + 1
+
+
+def test_default_host_packaged_analyze_asset_without_repo_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    host = default_host()
+    result = host.analyze_asset("ETH")
+    assert result["status"] == "ok"
+    assert result.get("price_history_source", {}).get("kind") == "fixture"

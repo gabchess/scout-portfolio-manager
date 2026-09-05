@@ -125,3 +125,11 @@ def test_analyze_asset_flags_stale_price_data(tmp_path):
 def test_analyze_asset_confidence_is_always_low(host: ReadOnlyHost):
     assert host.analyze_asset("ETH")["confidence"] == "low"
     assert host.analyze_asset("NOSUCHASSET")["confidence"] == "low"
+
+
+def test_analyze_asset_surfaces_fixture_price_history_source(host):
+    result = host.analyze_asset("ETH")
+    assert result["status"] == "ok"
+    src = result["price_history_source"]
+    assert src["kind"] == "fixture"
+    assert "synthetic" in src["locator"].lower() or "fixture" in src["locator"].lower()
