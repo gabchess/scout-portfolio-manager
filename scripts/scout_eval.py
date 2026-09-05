@@ -111,6 +111,21 @@ def build_gateway_payload(
     }
 
 
+def _parse_judge_content(content: Any) -> Any:
+    if not isinstance(content, str):
+        raise TypeError("message.content must be a string")
+
+    text = content.strip()
+    lines = text.splitlines()
+    if (
+        len(lines) >= 2
+        and lines[0].strip().casefold() in {"```", "```json"}
+        and lines[-1].strip() == "```"
+    ):
+        text = "\n".join(lines[1:-1]).strip()
+    return json.loads(text)
+
+
 def gateway_judge(
     case: Mapping[str, Any],
     output: Any,
@@ -120,7 +135,7 @@ def gateway_judge(
     dry_run: bool = False,
     opener: Callable[..., Any] = urlopen,
 ) -> dict[str, Any]:
-    """Optionally judge one case, without retrying budget exhaustion."""
+    """Optionally judge one case, retrying invalid model content once."""
     payload = build_gateway_payload(case, output, model)
     if dry_run:
         return {"status": "dry-run", "payload": payload}
@@ -136,24 +151,49 @@ def gateway_judge(
         },
         method="POST",
     )
-    try:
-        with opener(request, timeout=30) as response:
-            body = json.load(response)
-    except HTTPError as error:
-        if error.code == 402:
-            return {"status": "stopped", "reason": "AI Gateway returned HTTP 402"}
-        return {"status": "error", "reason": f"AI Gateway returned HTTP {error.code}"}
-    except (URLError, TimeoutError, json.JSONDecodeError) as error:
-        return {"status": "error", "reason": str(error)}
+    for attempt in range(2):
+        try:
+            with opener(request, timeout=30) as response:
+                body = json.load(response)
+        except HTTPError as error:
+            if error.code == 402:
+                return {"status": "stopped", "reason": "AI Gateway returned HTTP 402"}
+            return {"status": "error", "reason": f"AI Gateway returned HTTP {error.code}"}
+        except (URLError, TimeoutError, json.JSONDecodeError) as error:
+            return {"status": "error", "reason": str(error)}
 
-    try:
-        content = body["choices"][0]["message"]["content"]
-        verdict = json.loads(content)
-        passed = verdict["pass"] is True
-        reason = str(verdict["reason"])
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as error:
-        return {"status": "error", "reason": f"invalid judge response: {error}"}
-    return {"status": "passed" if passed else "failed", "reason": reason}
+        try:
+            content = body["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as error:
+            return {
+                "status": "error",
+                "reason": f"judge_error: invalid judge response: {error}",
+            }
+
+        try:
+            verdict = _parse_judge_content(content)
+        except (TypeError, json.JSONDecodeError):
+            if attempt == 0:
+                continue
+            return {
+                "status": "error",
+                "reason": (
+                    "judge_error: invalid judge response: "
+                    "message.content is empty or not valid JSON after 2 attempts"
+                ),
+            }
+
+        try:
+            passed = verdict["pass"] is True
+            reason = str(verdict["reason"])
+        except (KeyError, TypeError) as error:
+            return {
+                "status": "error",
+                "reason": f"judge_error: invalid judge response: {error}",
+            }
+        return {"status": "passed" if passed else "failed", "reason": reason}
+
+    raise AssertionError("unreachable")
 
 
 def run_suite(
