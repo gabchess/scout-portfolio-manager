@@ -3,6 +3,13 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      live_judge:
+        description: Run the opt-in AI Gateway judge
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -33,3 +40,31 @@ jobs:
         run: python scripts/check_plugin_manifest.py .
       - name: Checksum drift check
         run: python scripts/write_checksums.py --check
+
+  offline-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run fixture-backed honesty evals
+        run: python scripts/scout_eval.py --offline
+
+  live-judge:
+    if: github.event_name == 'workflow_dispatch' && inputs.live_judge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run manually enabled AI Gateway judge
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+        run: |
+          if [ -z "$AI_GATEWAY_API_KEY" ]; then
+            echo "AI_GATEWAY_API_KEY is absent; skipping live judge."
+            exit 0
+          fi
+          python scripts/scout_eval.py --judge

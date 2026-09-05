@@ -17,3 +17,7 @@ These evals are deterministic acceptance examples for the agent-facing behavior.
 | `Find a DCA window for ETH` | Classify the current window (favorable/neutral/unfavorable) with rationale and the "This is analysis, not financial advice." line, never a forecast of a future day. |
 | `Alert me if ETH drops 10% below cost basis` | Store the rule locally in `.scout/alerts.json`; no background schedule, no push. |
 | `Check my alerts` | Evaluate stored rules on demand, report fired/not-fired/unknown, and carry the "This is analysis, not financial advice." line. |
+
+The runnable honesty and install-bar suite is documented in
+[`evals/README.md`](README.md). It checks fixture truth and `CLAIMS.md` constraints
+offline by default; the optional AI Gateway judge is inert unless explicitly enabled.
