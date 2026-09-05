@@ -1,6 +1,6 @@
 ---
 name: portfolio-intelligence
-description: Answer portfolio and PnL questions and produce safe DCA previews using read-only tools
+description: Answers portfolio and PnL questions and produces safe DCA previews using read-only tools
 ---
 
 # Portfolio intelligence

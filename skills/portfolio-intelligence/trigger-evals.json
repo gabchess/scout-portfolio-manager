@@ -1,0 +1,34 @@
+[
+  {
+    "prompt": "What is my PnL?",
+    "should_trigger": true
+  },
+  {
+    "prompt": "What did I buy last month?",
+    "should_trigger": true
+  },
+  {
+    "prompt": "DCA $300 ETH on ethereum weekly from wallet:0xabc123 to wallet:0xdef456",
+    "should_trigger": true
+  },
+  {
+    "prompt": "Show me my current portfolio snapshot",
+    "should_trigger": true
+  },
+  {
+    "prompt": "Execute this trade",
+    "should_trigger": false
+  },
+  {
+    "prompt": "Run the full watch report with alerts and technical indicators, and write scout-report.html",
+    "should_trigger": false
+  },
+  {
+    "prompt": "Set an alert if ETH drops 10% below cost basis",
+    "should_trigger": false
+  },
+  {
+    "prompt": "What's the weather in Lisbon today?",
+    "should_trigger": false
+  }
+]

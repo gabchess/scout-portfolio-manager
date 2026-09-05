@@ -1,6 +1,6 @@
 ---
 name: watch
-description: Run Scout's full observe-through-alert chain on demand and write scout-report.html
+description: Runs Scout's full observe-through-alert chain on demand and writes scout-report.html
 ---
 
 # Watch

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.2 - 2026-09-05
+
+### Added
+
+- `trigger-evals.json` for both bundled skills (`portfolio-intelligence`, `watch`),
+  covering description-routing cases sourced from each `SKILL.md`'s scope section and
+  `evals/behavioral-evals.md`.
+- `tests/test_execution_boundary.py`: converts the "host and MCP carry no execute tool"
+  claim in `CLAIMS.md` from a docstring convention into a CI gate. AST-scans `host.py`
+  and `mcp_server.py` for any direct or transitive import of `adapters.py`'s
+  `FakeExecutionAdapter`, and pins the live MCP server's registered tool set to exactly
+  the 8 named tools.
+
+### Changed
+
+- `skills/portfolio-intelligence/SKILL.md` and `skills/watch/SKILL.md` descriptions
+  tightened to strict third person ("Answers...", "Runs...").
+
 ## 0.3.1 - 2026-09-04
 
 ### Changed

@@ -1,0 +1,34 @@
+[
+  {
+    "prompt": "Run Scout's full observe-through-alert chain and write scout-report.html",
+    "should_trigger": true
+  },
+  {
+    "prompt": "Give me one report that checks my portfolio, analyzes every held asset, and evaluates my alerts",
+    "should_trigger": true
+  },
+  {
+    "prompt": "Kick off the watch loop tick and refresh the report",
+    "should_trigger": true
+  },
+  {
+    "prompt": "Chain observe, calculate, propose, and alerts into one pass and save the HTML report",
+    "should_trigger": true
+  },
+  {
+    "prompt": "Execute this trade",
+    "should_trigger": false
+  },
+  {
+    "prompt": "What is my PnL?",
+    "should_trigger": false
+  },
+  {
+    "prompt": "Schedule this to run automatically every hour in the background",
+    "should_trigger": false
+  },
+  {
+    "prompt": "What's the weather in Lisbon today?",
+    "should_trigger": false
+  }
+]
