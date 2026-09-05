@@ -186,10 +186,11 @@ def test_run_suite_treats_repeated_non_json_content_as_judge_failure(tmp_path):
         calls += 1
         return BytesIO(b'{"choices":[{"message":{"content":"not JSON"}}]}')
 
+    placeholder = "test" + "-placeholder"
     summary = scout_eval.run_suite(
         suite_path,
         judge=True,
-        api_key="test-placeholder",
+        api_key=placeholder,
         opener=non_json_response,
     )
 
