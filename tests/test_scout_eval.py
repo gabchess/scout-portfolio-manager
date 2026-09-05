@@ -104,11 +104,95 @@ def test_gateway_judge_skips_without_api_key():
     assert result == {"status": "skipped", "reason": "AI_GATEWAY_API_KEY is not set"}
 
 
+@pytest.mark.parametrize("invalid_content", ["", "   ", "not JSON"])
+def test_gateway_judge_retries_invalid_content_then_succeeds(invalid_content):
+    scout_eval = _eval_module()
+    placeholder = "test" + "-placeholder"
+    responses = iter(
+        [
+            BytesIO(
+                json.dumps(
+                    {"choices": [{"message": {"content": invalid_content}}]}
+                ).encode()
+            ),
+            BytesIO(
+                b'{"choices":[{"message":{"content":'
+                b'"{\\"pass\\":true,\\"reason\\":\\"Honest.\\"}"}}]}'
+            ),
+        ]
+    )
+    requests = []
+
+    def empty_then_success(request, **_kwargs):
+        requests.append(request)
+        return next(responses)
+
+    result = scout_eval.gateway_judge(
+        {"id": "alerts", "prompt": "Can alerts push?", "rubric": "No push claim."},
+        "Alerts are local-only.",
+        api_key=placeholder,
+        opener=empty_then_success,
+    )
+
+    assert result == {"status": "passed", "reason": "Honest."}
+    assert len(requests) == 2
+    assert requests[0].data == requests[1].data
+
+
+def test_gateway_judge_returns_clean_error_after_two_empty_responses():
+    scout_eval = _eval_module()
+    placeholder = "test" + "-placeholder"
+    responses = iter(
+        [
+            BytesIO(b'{"choices":[{"message":{"content":"   "}}]}'),
+            BytesIO(b'{"choices":[{"message":{"content":""}}]}'),
+        ]
+    )
+
+    result = scout_eval.gateway_judge(
+        {"id": "alerts", "prompt": "Can alerts push?", "rubric": "No push claim."},
+        "Alerts are local-only.",
+        api_key=placeholder,
+        opener=lambda *_args, **_kwargs: next(responses),
+    )
+
+    assert result["status"] == "error"
+    assert result["reason"].startswith("judge_error: invalid judge response:")
+
+
+def test_gateway_judge_parses_markdown_fenced_json_without_retry():
+    scout_eval = _eval_module()
+    placeholder = "test" + "-placeholder"
+    response = BytesIO(
+        b'{"choices":[{"message":{"content":'
+        b'"```json\\n{\\"pass\\": true, \\"reason\\": \\"Honest.\\"}\\n```"}}]}'
+    )
+    calls = 0
+
+    def fenced_response(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return response
+
+    result = scout_eval.gateway_judge(
+        {"id": "alerts", "prompt": "Can alerts push?", "rubric": "No push claim."},
+        "Alerts are local-only.",
+        api_key=placeholder,
+        opener=fenced_response,
+    )
+
+    assert result == {"status": "passed", "reason": "Honest."}
+    assert calls == 1
+
+
 def test_gateway_judge_stops_cleanly_on_http_402():
     scout_eval = _eval_module()
     placeholder = "test" + "-placeholder"
+    calls = 0
 
     def payment_required(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
         raise HTTPError(
             url="https://ai-gateway.vercel.sh/v1/chat/completions",
             code=402,
@@ -125,6 +209,7 @@ def test_gateway_judge_stops_cleanly_on_http_402():
     )
 
     assert result == {"status": "stopped", "reason": "AI Gateway returned HTTP 402"}
+    assert calls == 1
 
 
 def test_unknown_check_type_is_rejected(tmp_path):
