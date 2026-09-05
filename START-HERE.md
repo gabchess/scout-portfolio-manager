@@ -1,6 +1,6 @@
 # Start here
 
-Version **0.3.0**.
+Version **0.3.1**.
 
 Give this repository folder or ZIP to your agent and ask it to install Scout from [`START-HERE.md`](START-HERE.md). Discovery is not the same as a successful install: verify tools appear before trusting the host.
 

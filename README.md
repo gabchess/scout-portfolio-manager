@@ -1,5 +1,9 @@
 # Scout
 
+## Meet Scout
+
+![Scout corgi mascot](docs/scout-mascot-corgi.png)
+
 Your agent should know what you own.
 
 A read-only portfolio intelligence plugin and Python package, built on the Zerion API, for portfolio snapshots, explainable USD PnL, DCA intent clarification, and approval-required previews.
@@ -127,4 +131,4 @@ This repository is also a Claude Code plugin, with an Agent Skills-compatible Co
 
 ## Status
 
-Version `0.3.0` is an early release: fixture-backed functionality, a read-only host, optional analytics and local alerts, an optional read-only Zerion adapter, and an optional read-only MCP server. Treat API-backed observations as external data with freshness, availability, and authorization limits.
+Version `0.3.1` is an early release: fixture-backed functionality, a read-only host, optional analytics and local alerts, an optional read-only Zerion adapter, and an optional read-only MCP server. Treat API-backed observations as external data with freshness, availability, and authorization limits.
