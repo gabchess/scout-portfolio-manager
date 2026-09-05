@@ -7,7 +7,7 @@
 <p align="center"><strong>Your agent should know what you own.</strong></p>
 
 <p align="center">
-  <a href="CLAIMS.md"><img alt="version 0.3.1" src="https://img.shields.io/badge/version-0.3.1-0B57D0" /></a>
+  <a href="CLAIMS.md"><img alt="version 0.3.2" src="https://img.shields.io/badge/version-0.3.2-0B57D0" /></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-2ea44f" /></a>
   <a href="START-HERE.md"><img alt="read-only MCP" src="https://img.shields.io/badge/MCP-read--only-6e7781" /></a>
 </p>
