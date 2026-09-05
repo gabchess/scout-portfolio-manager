@@ -107,6 +107,15 @@ uv run --extra mcp zpm-mcp
 
 API failure returns a typed error with `fallback: "none"`. The fixture is never substituted for a failed live call. See [`DATA-AND-PRIVACY.md`](DATA-AND-PRIVACY.md).
 
+### Optional MCP server
+
+```bash
+.venv/bin/pip install -e '.[mcp]'
+.venv/bin/zpm-mcp
+```
+
+Tools registered: `get_portfolio_snapshot`, `get_pnl`, `parse_dca_request`, `preview_dca`, `analyze_asset`, `dca_windows`, `set_alert`, `check_alerts`. The default remains fixture-backed and offline. Set `ZPM_FIXTURE_PATH` to use another local fixture, or set both `ZERION_API_KEY` and `ZERION_WALLET_ADDRESS` to observe one real wallet read-only (see above). `analyze_asset` / `dca_windows` use fixture price history unless documented otherwise. Alerts are local on-demand files, not channel push. No wallet connect UX, signing, submission, execution, or settlement-verification tool is registered.
+
 ## Docs
 
 | Doc | Use |
