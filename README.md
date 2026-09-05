@@ -1,6 +1,6 @@
 # Meet Scout
 
-![Scout corgi mascot](docs/scout-mascot-corgi.png)
+<img width="1254" height="1254" alt="image" src="https://github.com/user-attachments/assets/5707cad7-53f7-42d6-a6a3-82bf35f19afd" />
 
 Your agent should know what you own.
 
