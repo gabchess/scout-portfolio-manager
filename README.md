@@ -1,6 +1,4 @@
-# Scout
-
-## Meet Scout
+# Meet Scout
 
 ![Scout corgi mascot](docs/scout-mascot-corgi.png)
 
