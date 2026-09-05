@@ -79,7 +79,7 @@ DEFAULT_MAX_PRICE_AGE_DAYS = 2
 TA_CONFIDENCE = "low"
 TA_DISCLOSURE = "Heuristic indicators, not backtested; treat as descriptive, not predictive."
 
-#: Pinned verbatim, grepped by Harrier and Kestrel: never reword.
+#: Pinned verbatim, grepped by the release review pipeline: never reword.
 NOT_FINANCIAL_ADVICE = "This is analysis, not financial advice."
 
 # Deterministic fixture quote assumptions used only when the caller omits quote fields.
