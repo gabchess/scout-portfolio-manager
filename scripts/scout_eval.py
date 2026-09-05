@@ -208,7 +208,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--responses", type=Path)
     parser.add_argument("--offline", action="store_true", help="never call AI Gateway (default)")
     parser.add_argument("--judge", action="store_true", help="opt in to live AI Gateway judging")
-    parser.add_argument("--dry-run", action="store_true", help="print judge payloads without sending")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="print judge payloads without sending"
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     args = parser.parse_args()
     if args.offline and args.judge:

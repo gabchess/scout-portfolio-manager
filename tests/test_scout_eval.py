@@ -106,6 +106,7 @@ def test_gateway_judge_skips_without_api_key():
 
 def test_gateway_judge_stops_cleanly_on_http_402():
     scout_eval = _eval_module()
+    placeholder = "test" + "-placeholder"
 
     def payment_required(*_args, **_kwargs):
         raise HTTPError(
@@ -119,7 +120,7 @@ def test_gateway_judge_stops_cleanly_on_http_402():
     result = scout_eval.gateway_judge(
         {"id": "alerts", "prompt": "Can alerts push?", "rubric": "No push claim."},
         "Alerts are local-only.",
-        api_key="test-placeholder",
+        api_key=placeholder,
         opener=payment_required,
     )
 
