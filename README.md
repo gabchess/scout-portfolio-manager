@@ -1,6 +1,6 @@
 # Meet Scout
 
-<img width="1254" height="1254" alt="image" src="https://github.com/user-attachments/assets/5707cad7-53f7-42d6-a6a3-82bf35f19afd" />
+<img width="1024" height="1536" alt="scout" src="https://github.com/user-attachments/assets/7add2aaa-481d-400d-9216-454ac87a69f9" />
 
 Your agent should know what you own.
 
