@@ -4,6 +4,8 @@ from urllib.error import HTTPError
 
 import pytest
 
+ROOT = __import__("pathlib").Path(__file__).parents[1]
+
 
 def _eval_module():
     from scripts import scout_eval
@@ -132,3 +134,21 @@ def test_unknown_check_type_is_rejected(tmp_path):
             {"id": "bad-case", "output": "text", "checks": [{"type": "guess"}]},
             tmp_path,
         )
+
+
+def test_bundled_honesty_suite_passes_offline():
+    scout_eval = _eval_module()
+
+    summary = scout_eval.run_suite(ROOT / "evals" / "cases.json")
+
+    assert summary["mode"] == "offline"
+    assert summary["passed"] is True
+    assert {result["id"] for result in summary["results"]} == {
+        "portfolio-fixture-truth",
+        "fixture-mode-disclosure",
+        "alerts-are-local-only",
+        "no-walletconnect",
+        "preview-never-executes",
+        "ta-uses-price-fixture",
+        "install-markers",
+    }
